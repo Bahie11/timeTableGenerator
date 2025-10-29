@@ -1,0 +1,195 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Ahmed Bayumi - Personal Timetable</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.2em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .instructor-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 1.1em;
+            color: #333;
+        }
+        .content {
+            padding: 30px;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .schedule-table th {
+            background: linear-gradient(135deg, #F18F01 0%, #FF9800 100%);
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        .schedule-table td {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+        .schedule-table tr:hover {
+            background: #f8f9fa;
+        }
+        .time-cell {
+            font-weight: 600;
+            color: #2E86AB;
+            width: 150px;
+            font-size: 1.1em;
+        }
+        .day-cell {
+            font-weight: 600;
+            color: #333;
+            width: 120px;
+        }
+        .course-cell {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+            font-size: 1.1em;
+        }
+        .room-cell {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+            font-size: 1.1em;
+        }
+        .no-classes {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👨‍🏫 Personal Timetable</h1>
+            <p>Generated on October 19, 2025 at 01:53 AM</p>
+        </div>
+        
+        <div class="instructor-info">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Instructor Name</div>
+                    <div class="info-value">Dr. Ahmed Bayumi</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Instructor ID</div>
+                    <div class="info-value">PROF11</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Role</div>
+                    <div class="info-value">Professor</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Classes</div>
+                    <div class="info-value">1</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Course</th>
+                        <th>Room</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td class="day-cell">Monday</td>
+                        <td class="time-cell">12:30 PM-2:00 PM</td>
+                        <td><span class="course-cell">AID428</span></td>
+                        <td><span class="room-cell">R104</span></td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+        
+        <div class="footer">
+            <p>Generated by Timetable Generator (CSP) | 2025</p>
+        </div>
+    </div>
+</body>
+</html>
