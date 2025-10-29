@@ -1,739 +1,896 @@
 """
-GUI application for the timetable generator.
+Enhanced GUI application for the timetable generator with comprehensive features.
 """
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+import os
+import sys
 import threading
-import time
-from typing import Dict, List
+import queue
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, scrolledtext
+from pathlib import Path
 
-try:
-    from .models import Instructor, Room, Course, TimeSlot, Assignment
-    from .data_loader import load_instructors, load_rooms, load_courses, load_timeslots, load_instructors_excel, load_rooms_excel, load_courses_excel, load_timeslots_excel
-    from .csp import generate_schedule_from_memory
-    from .output_utils import write_schedule_csv, print_schedule
-    from .htmlexport import export_schedule_html, export_instructor_html, export_grid_html
-except ImportError:
-    from models import Instructor, Room, Course, TimeSlot, Assignment
-    from data_loader import load_instructors, load_rooms, load_courses, load_timeslots, load_instructors_excel, load_rooms_excel, load_courses_excel, load_timeslots_excel
-    from csp import generate_schedule_from_memory
-    from output_utils import write_schedule_csv, print_schedule
-    from htmlexport import export_schedule_html, export_instructor_html, export_grid_html
+from data_loader import load_instructors_excel, load_rooms_excel, load_timeslots_excel, load_courses_excel
+from csp import generate_schedule_from_memory
+from csp_enhanced import generate_schedule_enhanced
+from csp_fixed import generate_schedule_fixed
+from output_utils import write_schedule_csv, print_schedule, get_proper_sort_key
+from htmlexport import export_schedule_html, export_instructor_html, export_grid_html
+
+
+class TimetableGeneratorGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("🎓 University Timetable Generator - Advanced CSP Solver")
+        self.root.geometry("1100x750")
+        
+        # Modern color scheme (matching HTML output)
+        self.colors = {
+            'primary': '#2E86AB',      # Blue
+            'secondary': '#A23B72',    # Pink
+            'accent': '#F18F01',       # Orange
+            'success': '#06D6A0',      # Green
+            'bg_light': '#F8F9FA',     # Light gray
+            'bg_white': '#FFFFFF',     # White
+            'text_dark': '#333333',    # Dark gray
+            'text_light': '#666666',   # Medium gray
+            'course_bg': '#E3F2FD',    # Light blue
+            'course_text': '#1976D2',  # Blue
+            'room_bg': '#F3E5F5',      # Light purple
+            'room_text': '#7B1FA2',    # Purple
+            'hover': '#E9ECEF'         # Hover gray
+        }
+        
+        # Configure style
+        self.setup_styles()
+        
+        # Set background color
+        self.root.configure(bg=self.colors['bg_light'])
+        
+        # Data storage
+        self.solution = None
+        self.instructors_by_id = None
+        self.timeslots = None
+        self.instructors = None
+        self.rooms = None
+        self.courses = None
+        
+        # Worker state
+        self.worker_state = {"thread": None, "event": threading.Event()}
+        self.progress_q = queue.Queue()
+        
+        # Configuration variables (Configuration tab removed - using optimal defaults)
+        # DEFAULT SETTINGS: Fixed CSP with randomization enabled
+        self.max_nodes_var = tk.IntVar(value=200000)
+        self.timeout_var = tk.IntVar(value=30)
+        self.use_enhanced_csp = tk.BooleanVar(value=False)  # Enhanced CSP - OFF
+        self.use_fixed_csp = tk.BooleanVar(value=True)  # FIXED CSP - ON (allows multiple classes per instructor)
+        self.randomize_var = tk.BooleanVar(value=True)  # Randomization - ON (better distribution)
+        
+        # File paths - can be selected from anywhere on the computer
+        self.instructors_path_var = tk.StringVar(value="")
+        self.rooms_path_var = tk.StringVar(value="")
+        self.courses_path_var = tk.StringVar(value="")
+        self.timeslots_path_var = tk.StringVar(value="")
+        
+        self.create_widgets()
+        self.start_progress_update()
+        self.animate_welcome()
+    
+    def setup_styles(self):
+        """Configure modern ttk styles"""
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Configure Notebook (tabs) with modern colors
+        style.configure('TNotebook', background=self.colors['bg_light'], borderwidth=0)
+        style.configure('TNotebook.Tab', 
+                       background=self.colors['bg_white'],
+                       foreground=self.colors['text_dark'],
+                       padding=[20, 10],
+                       font=('Segoe UI', 10, 'bold'))
+        style.map('TNotebook.Tab',
+                 background=[('selected', self.colors['primary'])],
+                 foreground=[('selected', 'white')],
+                 expand=[('selected', [1, 1, 1, 0])])
+        
+        # Configure Frames
+        style.configure('TFrame', background=self.colors['bg_light'])
+        style.configure('Card.TFrame', background=self.colors['bg_white'], relief='raised')
+        
+        # Configure Labels
+        style.configure('TLabel', background=self.colors['bg_light'], 
+                       foreground=self.colors['text_dark'], font=('Segoe UI', 10))
+        style.configure('Title.TLabel', font=('Segoe UI', 16, 'bold'), 
+                       foreground=self.colors['primary'])
+        style.configure('Subtitle.TLabel', font=('Segoe UI', 11), 
+                       foreground=self.colors['text_light'])
+        style.configure('Header.TLabel', font=('Segoe UI', 12, 'bold'), 
+                       foreground=self.colors['primary'])
+        
+        # Configure Buttons with modern styling
+        style.configure('TButton',
+                       background=self.colors['primary'],
+                       foreground='white',
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=('Segoe UI', 10, 'bold'),
+                       padding=[15, 8])
+        style.map('TButton',
+                 background=[('active', self.colors['secondary']), ('pressed', self.colors['secondary'])],
+                 relief=[('pressed', 'flat'), ('!pressed', 'flat')])
+        
+        # Accent button (orange)
+        style.configure('Accent.TButton',
+                       background=self.colors['accent'],
+                       foreground='white',
+                       font=('Segoe UI', 11, 'bold'),
+                       padding=[20, 10])
+        style.map('Accent.TButton',
+                 background=[('active', '#FF9800')])
+        
+        # Success button (green)
+        style.configure('Success.TButton',
+                       background=self.colors['success'],
+                       foreground='white',
+                       font=('Segoe UI', 10, 'bold'),
+                       padding=[15, 8])
+        
+        # Configure LabelFrame
+        style.configure('TLabelframe', background=self.colors['bg_white'], 
+                       borderwidth=2, relief='groove')
+        style.configure('TLabelframe.Label', background=self.colors['bg_white'], 
+                       foreground=self.colors['primary'], font=('Segoe UI', 11, 'bold'))
+        
+        # Configure Entry
+        style.configure('TEntry', fieldbackground='white', borderwidth=1)
+        
+        # Configure Progressbar with modern colors
+        style.configure('TProgressbar', 
+                       background=self.colors['success'],
+                       troughcolor=self.colors['hover'],
+                       borderwidth=0,
+                       thickness=20)
+        
+    def animate_welcome(self):
+        """Subtle welcome animation"""
+        # Fade in effect simulation
+        self.root.attributes('-alpha', 0.0)
+        self.fade_in()
+    
+    def fade_in(self, alpha=0.0):
+        """Fade in animation"""
+        alpha += 0.1
+        if alpha <= 1.0:
+            self.root.attributes('-alpha', alpha)
+            self.root.after(30, lambda: self.fade_in(alpha))
+        else:
+            self.root.attributes('-alpha', 1.0)
+    
+    def on_button_hover(self, event, button):
+        """Button hover effect"""
+        button.state(['active'])
+    
+    def on_button_leave(self, event, button):
+        """Button leave effect"""
+        button.state(['!active'])
+    
+    def animate_status(self, message, color=None):
+        """Animate status bar message with color"""
+        if color is None:
+            color = self.colors['primary']
+        
+        # Update status with animation
+        self.status_label.config(text=message, bg=color)
+        
+        # Pulse effect
+        self.pulse_status(color, 0)
+    
+    def pulse_status(self, target_color, step):
+        """Create a pulse effect on status bar"""
+        if step < 3:
+            # Alternate between target color and slightly darker
+            if step % 2 == 0:
+                self.status_label.config(bg=target_color)
+            else:
+                # Slightly darker
+                self.status_label.config(bg=self.colors['primary'])
+            
+            self.root.after(200, lambda: self.pulse_status(target_color, step + 1))
+        else:
+            # Return to target color
+            self.status_label.config(bg=target_color)
+        
+    def create_widgets(self):
+        """Create the main UI layout with tabs"""
+        # Create notebook (tabbed interface)
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Create tabs
+        self.create_data_tab()
+        # Configuration tab removed - using default settings
+        self.create_results_tab()
+        self.create_export_tab()
+        
+        # Status bar at the bottom
+        self.create_status_bar()
+        
+    def create_data_tab(self):
+        """Tab for data file selection and generation"""
+        data_frame = ttk.Frame(self.notebook, padding=10)
+        data_frame.configure(style='TFrame')
+        self.notebook.add(data_frame, text="📁 Data Files")
+        
+        # Modern header with gradient-like effect
+        header_frame = tk.Frame(data_frame, bg=self.colors['primary'], height=80)
+        header_frame.pack(fill='x', pady=(0, 20))
+        header_frame.pack_propagate(False)
+        
+        title = tk.Label(header_frame, text="📁 Data Files Configuration", 
+                        font=("Segoe UI", 18, "bold"), 
+                        bg=self.colors['primary'], fg='white')
+        title.pack(expand=True)
+        
+        subtitle = tk.Label(header_frame, text="Load your Excel files to begin scheduling", 
+                           font=("Segoe UI", 10), 
+                           bg=self.colors['primary'], fg='white')
+        subtitle.pack()
+        
+        # File selection frame
+        files_frame = ttk.LabelFrame(data_frame, text="Input Files (Select from anywhere on your computer)", padding=10)
+        files_frame.pack(fill="x", pady=5)
+        
+        # Info message
+        info_msg = ttk.Label(files_frame, 
+                            text="💡 Click 'Browse...' to select Excel (.xlsx, .xls) or CSV files from any location",
+                            foreground="blue", font=("Segoe UI", 9))
+        info_msg.grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
+        
+        files_data = [
+            ("Instructors File:", self.instructors_path_var),
+            ("Rooms File:", self.rooms_path_var),
+            ("Courses File:", self.courses_path_var),
+            ("Timeslots File:", self.timeslots_path_var)
+        ]
+        
+        for idx, (label, var) in enumerate(files_data):
+            row_idx = idx + 1  # Offset by 1 due to info message
+            ttk.Label(files_frame, text=label, width=15).grid(row=row_idx, column=0, sticky="w", pady=3)
+            entry = ttk.Entry(files_frame, textvariable=var, width=60)
+            entry.grid(row=row_idx, column=1, sticky="ew", padx=5)
+            ttk.Button(files_frame, text="Browse...", 
+                      command=lambda v=var: self.browse_file(v)).grid(row=row_idx, column=2, padx=5)
+        
+        files_frame.columnconfigure(1, weight=1)
+        
+        # Load data button
+        load_frame = ttk.Frame(data_frame)
+        load_frame.pack(pady=10)
+        
+        load_btn = ttk.Button(load_frame, text="🔄 Load Data Files", 
+                  command=self.load_data_files, width=20, style='Accent.TButton')
+        load_btn.pack(side="left", padx=5)
+        
+        # Add hover effect
+        load_btn.bind('<Enter>', lambda e: self.on_button_hover(e, load_btn))
+        load_btn.bind('<Leave>', lambda e: self.on_button_leave(e, load_btn))
+        
+        self.data_status_label = ttk.Label(load_frame, text="⚪ No data loaded", foreground=self.colors['text_light'])
+        self.data_status_label.pack(side="left", padx=10)
+        
+        # Generation frame
+        gen_frame = ttk.LabelFrame(data_frame, text="Schedule Generation", padding=15)
+        gen_frame.pack(fill="both", expand=True, pady=10)
+        
+        # Progress
+        progress_frame = ttk.Frame(gen_frame)
+        progress_frame.pack(fill="x", pady=10)
+        
+        self.progress_label = ttk.Label(progress_frame, text="Ready to generate (🔧 Fixed CSP - Multiple classes per instructor)", font=("Segoe UI", 10))
+        self.progress_label.pack()
+        
+        self.progress_bar = ttk.Progressbar(progress_frame, mode="indeterminate", length=400)
+        self.progress_bar.pack(pady=5)
+        
+        # Buttons
+        button_frame = ttk.Frame(gen_frame)
+        button_frame.pack(pady=10)
+        
+        self.generate_btn = ttk.Button(button_frame, text="▶ Generate Timetable", 
+                                       command=self.on_generate, width=25, style='Accent.TButton')
+        self.generate_btn.pack(side="left", padx=5)
+        self.generate_btn.bind('<Enter>', lambda e: self.on_button_hover(e, self.generate_btn))
+        self.generate_btn.bind('<Leave>', lambda e: self.on_button_leave(e, self.generate_btn))
+        
+        self.cancel_btn = ttk.Button(button_frame, text="⏹ Cancel", 
+                                     command=self.on_cancel, state="disabled", width=15)
+        self.cancel_btn.pack(side="left", padx=5)
+        
+    # Configuration tab removed - using default settings (Fixed CSP enabled)
+    # def create_config_tab(self):
+    #     """Tab for algorithm configuration - REMOVED"""
+    #     pass
+        
+    def create_results_tab(self):
+        """Tab for viewing generated results"""
+        results_frame = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(results_frame, text="📊 Results")
+        
+        # Modern header
+        header_frame = tk.Frame(results_frame, bg=self.colors['accent'], height=80)
+        header_frame.pack(fill='x', pady=(0, 20))
+        header_frame.pack_propagate(False)
+        
+        title = tk.Label(header_frame, text="📊 Generated Schedule", 
+                        font=("Segoe UI", 18, "bold"), 
+                        bg=self.colors['accent'], fg='white')
+        title.pack(expand=True)
+        
+        subtitle = tk.Label(header_frame, text="View your timetable results", 
+                           font=("Segoe UI", 10), 
+                           bg=self.colors['accent'], fg='white')
+        subtitle.pack()
+        
+        # Results text area with scrollbar
+        text_frame = ttk.Frame(results_frame)
+        text_frame.pack(fill="both", expand=True)
+        
+        self.results_text = scrolledtext.ScrolledText(text_frame, wrap=tk.NONE, 
+                                                      font=("Consolas", 9), 
+                                                      bg=self.colors['bg_white'], 
+                                                      fg=self.colors['text_dark'],
+                                                      borderwidth=2,
+                                                      relief='solid')
+        self.results_text.pack(fill="both", expand=True)
+        
+        # Add horizontal scrollbar
+        xscrollbar = ttk.Scrollbar(text_frame, orient=tk.HORIZONTAL, 
+                                   command=self.results_text.xview)
+        xscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.results_text.configure(xscrollcommand=xscrollbar.set)
+        
+        self.results_text.insert("1.0", "No schedule generated yet.\n\nClick 'Generate Timetable' in the Data Files tab.")
+        self.results_text.configure(state="disabled")
+        
+    def create_export_tab(self):
+        """Tab for exporting results"""
+        export_frame = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(export_frame, text="💾 Export")
+        
+        # Modern header
+        header_frame = tk.Frame(export_frame, bg=self.colors['success'], height=80)
+        header_frame.pack(fill='x', pady=(0, 20))
+        header_frame.pack_propagate(False)
+        
+        title = tk.Label(header_frame, text="💾 Export Options", 
+                        font=("Segoe UI", 18, "bold"), 
+                        bg=self.colors['success'], fg='white')
+        title.pack(expand=True)
+        
+        subtitle = tk.Label(header_frame, text="Save your timetable in multiple formats", 
+                           font=("Segoe UI", 10), 
+                           bg=self.colors['success'], fg='white')
+        subtitle.pack()
+        
+        # CSV Export
+        csv_frame = ttk.LabelFrame(export_frame, text="CSV Export", padding=15)
+        csv_frame.pack(fill="x", pady=5)
+        
+        ttk.Label(csv_frame, text="Export schedule as CSV file for Excel/analysis").pack(anchor="w")
+        ttk.Button(csv_frame, text="📄 Export to CSV", command=self.export_csv, 
+                  width=30).pack(pady=5)
+        
+        # HTML Exports
+        html_frame = ttk.LabelFrame(export_frame, text="HTML Exports", padding=15)
+        html_frame.pack(fill="x", pady=5)
+        
+        ttk.Label(html_frame, text="Export as beautiful HTML pages:").pack(anchor="w", pady=(0, 10))
+        
+        btn_frame = ttk.Frame(html_frame)
+        btn_frame.pack(fill="x")
+        
+        ttk.Button(btn_frame, text="🌐 Full Schedule (HTML)", 
+                  command=self.export_html_full, width=30).pack(pady=3)
+        ttk.Button(btn_frame, text="📅 Weekly Grid (HTML)", 
+                  command=self.export_html_grid, width=30).pack(pady=3)
+        ttk.Button(btn_frame, text="👨‍🏫 Individual Instructor (HTML)", 
+                  command=self.export_html_instructor, width=30).pack(pady=3)
+        
+        # Export all
+        all_frame = ttk.LabelFrame(export_frame, text="Batch Export", padding=15)
+        all_frame.pack(fill="x", pady=5)
+        
+        ttk.Label(all_frame, text="Export everything at once:").pack(anchor="w")
+        ttk.Button(all_frame, text="📦 Export All Formats", command=self.export_all, 
+                  width=30).pack(pady=5)
+        
+    def create_status_bar(self):
+        """Create bottom status bar"""
+        status_frame = tk.Frame(self.root, bg=self.colors['primary'], height=35)
+        status_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        status_frame.pack_propagate(False)
+        
+        self.status_label = tk.Label(status_frame, text="✨ Ready to create amazing timetables!", 
+                                    anchor=tk.W, bg=self.colors['primary'], fg='white',
+                                    font=('Segoe UI', 9, 'bold'), padx=10)
+        self.status_label.pack(side=tk.LEFT, fill='both', expand=True)
+        
+    # Helper methods
+    def browse_file(self, var):
+        """Open file browser dialog - can select from anywhere on your computer"""
+        # Start from the current file's directory if one is set, otherwise user's home
+        initial_dir = None
+        current_path = var.get()
+        if current_path and os.path.exists(current_path):
+            initial_dir = str(Path(current_path).parent)
+        elif current_path and os.path.exists(Path(current_path).parent):
+            initial_dir = str(Path(current_path).parent)
+        else:
+            # Try default data path if it exists
+            default_data_path = Path(r"d:\projects\timetable\Data")
+            if default_data_path.exists():
+                initial_dir = str(default_data_path)
+        
+        filename = filedialog.askopenfilename(
+            title="Select file (from anywhere on your computer)",
+            filetypes=[("Excel files", "*.xlsx *.xls"), ("CSV files", "*.csv"), ("All files", "*.*")],
+            initialdir=initial_dir
+        )
+        if filename:
+            var.set(filename)
+            
+    def load_data_files(self):
+        """Load all data files"""
+        try:
+            # Validate that all file paths are provided
+            instructors_path = self.instructors_path_var.get().strip()
+            rooms_path = self.rooms_path_var.get().strip()
+            courses_path = self.courses_path_var.get().strip()
+            timeslots_path = self.timeslots_path_var.get().strip()
+            
+            if not instructors_path or not rooms_path or not courses_path or not timeslots_path:
+                missing = []
+                if not instructors_path: missing.append("Instructors")
+                if not rooms_path: missing.append("Rooms")
+                if not courses_path: missing.append("Courses")
+                if not timeslots_path: missing.append("Timeslots")
+                messagebox.showwarning("Missing Files", 
+                    f"Please select all required files.\n\nMissing: {', '.join(missing)}")
+                return
+            
+            self.status_label.config(text="Loading data files...")
+            self.instructors = load_instructors_excel(instructors_path)
+            self.rooms = load_rooms_excel(rooms_path)
+            self.courses = load_courses_excel(courses_path)
+            self.timeslots = load_timeslots_excel(timeslots_path)
+            
+            # Validate that data was actually loaded
+            if not self.instructors or not self.rooms or not self.courses or not self.timeslots:
+                raise ValueError("One or more files did not contain valid data")
+            
+            msg = f"✅ Loaded: {len(self.instructors)} instructors, {len(self.rooms)} rooms, " \
+                  f"{len(self.courses)} courses, {len(self.timeslots)} timeslots"
+            self.data_status_label.config(text=msg, foreground=self.colors['success'])
+            self.animate_status("✅ Data loaded successfully!", self.colors['success'])
+            messagebox.showinfo("✅ Success", msg)
+        except Exception as e:
+            self.data_status_label.config(text="✗ Error loading data", foreground="red")
+            self.status_label.config(text="Error")
+            messagebox.showerror("Error", f"Failed to load data:\n{str(e)}")
+            
+    def start_progress_update(self):
+        """Start the progress update loop"""
+        def update():
+            try:
+                while True:
+                    nodes = self.progress_q.get_nowait()
+                    self.progress_label.config(text=f"Nodes explored: {nodes:,}")
+            except queue.Empty:
+                pass
+            self.root.after(200, update)
+        
+        self.root.after(200, update)
+        
+    def progress_callback(self, nodes):
+        """Callback for progress updates"""
+        try:
+            self.progress_q.put(nodes)
+        except Exception:
+            pass
+            
+    def on_generate(self):
+        """Generate timetable"""
+        # Load data if not already loaded
+        if self.instructors is None:
+            try:
+                self.load_data_files()
+            except:
+                return
+                
+        self.generate_btn.config(state="disabled")
+        self.cancel_btn.config(state="normal")
+        self.progress_bar.start(10)
+        
+        # Show which algorithm is being used
+        if self.use_fixed_csp.get():
+            algo_name = "Fixed CSP"
+        elif self.use_enhanced_csp.get():
+            algo_name = "Enhanced CSP"
+        else:
+            algo_name = "Original CSP"
+        self.progress_label.config(text=f"Starting generation ({algo_name})...")
+        self.status_label.config(text=f"Generating schedule with {algo_name}...")
+        self.worker_state["event"].clear()
+        
+        def worker():
+            try:
+                # Choose algorithm based on user selection
+                if self.use_fixed_csp.get():
+                    # Use FIXED CSP algorithm (supports multiple classes per instructor)
+                    sol_list, inst_by_id, ts = generate_schedule_fixed(
+                        self.instructors, 
+                        self.rooms, 
+                        self.timeslots, 
+                        courses=self.courses,
+                        stop_event=self.worker_state["event"],
+                        progress_callback=self.progress_callback
+                    )
+                    # Convert list format to dict for compatibility
+                    # Key: (instructor_id, course_id), Value: (timeslot_idx, room_id, course_id)
+                    sol = {}
+                    for instructor_id, timeslot_idx, room_id, course_id in sol_list:
+                        # Use unique key for each assignment
+                        key = f"{instructor_id}_{course_id}_{timeslot_idx}"
+                        sol[key] = (timeslot_idx, room_id, course_id, instructor_id)
+                    
+                elif self.use_enhanced_csp.get():
+                    # Use enhanced CSP algorithm
+                    sol, inst_by_id, ts = generate_schedule_enhanced(
+                        self.instructors, 
+                        self.rooms, 
+                        self.timeslots, 
+                        courses=self.courses,
+                        stop_event=self.worker_state["event"],
+                        progress_callback=self.progress_callback,
+                        use_fast_mode=True,  # Always use fast mode in GUI
+                        randomize=self.randomize_var.get()
+                    )
+                else:
+                    # Use original CSP algorithm
+                    sol, inst_by_id, ts = generate_schedule_from_memory(
+                        self.instructors, 
+                        self.rooms, 
+                        self.timeslots, 
+                        courses=self.courses,
+                        stop_event=self.worker_state["event"],
+                        progress_callback=self.progress_callback
+                    )
+                
+                if not sol:
+                    self.root.after(0, lambda: messagebox.showinfo(
+                        "Result", "No solution found or search was cancelled."))
+                    self.root.after(0, lambda: self.status_label.config(text="No solution found"))
+                else:
+                    self.solution = sol
+                    self.instructors_by_id = inst_by_id
+                    self.timeslots = ts
+                    self.root.after(0, self.display_results)
+                    self.root.after(0, lambda: self.animate_status(
+                        f"✅ Schedule generated: {len(sol)} classes scheduled!", self.colors['success']))
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
+                self.root.after(0, lambda: self.status_label.config(text="Error occurred"))
+            finally:
+                def finish_ui():
+                    self.progress_bar.stop()
+                    if self.use_fixed_csp.get():
+                        algo_name = "🔧 Fixed CSP"
+                    elif self.use_enhanced_csp.get():
+                        algo_name = "✨ Enhanced CSP"
+                    else:
+                        algo_name = "⚡ Original CSP"
+                    self.progress_label.config(text=f"Ready to generate ({algo_name})")
+                    self.generate_btn.config(state="normal")
+                    self.cancel_btn.config(state="disabled")
+                self.root.after(0, finish_ui)
+        
+        self.worker_state["thread"] = threading.Thread(target=worker, daemon=True)
+        self.worker_state["thread"].start()
+        
+    def on_cancel(self):
+        """Cancel generation"""
+        self.worker_state["event"].set()
+        self.cancel_btn.config(state="disabled")
+        self.progress_label.config(text="Cancelling...")
+        self.status_label.config(text="Cancelling...")
+        
+    def display_results(self):
+        """Display results in the results tab"""
+        if not self.solution:
+            return
+            
+        self.results_text.configure(state="normal")
+        self.results_text.delete("1.0", tk.END)
+        
+        # Build results text
+        results = []
+        results.append("="*100)
+        results.append(f"GENERATED TIMETABLE - {len(self.solution)} CLASSES SCHEDULED")
+        results.append("="*100)
+        results.append("")
+        
+        # Sort and display schedule
+        rows = []
+        for key, value in sorted(
+            self.solution.items(), 
+            key=lambda kv: get_proper_sort_key(kv, self.timeslots) if len(kv[1]) == 3 else (kv[1][0], kv[1][1])
+        ):
+            # Handle both old and new formats
+            if len(value) == 4:
+                # New fixed CSP format: (timeslot_idx, room_id, course_id, instructor_id)
+                slot_index, room_id, course, instructor_id = value
+            else:
+                # Old format: (timeslot_idx, room_id, course_id) with key as instructor_id
+                slot_index, room_id, course = value
+                instructor_id = key
+            
+            instructor = self.instructors_by_id.get(instructor_id)
+            if not instructor:
+                continue
+                
+            ts = self.timeslots[slot_index]
+            rows.append((
+                instructor.name or instructor_id,
+                instructor.instructor_id,
+                ts.day,
+                f"{ts.start_time}-{ts.end_time}",
+                room_id,
+                course
+            ))
+        
+        # Create table
+        headers = ("Instructor", "ID", "Day", "Time", "Room", "Course")
+        table = [headers] + rows
+        col_widths = [max(len(str(row[i])) for row in table) for i in range(len(headers))]
+        
+        def fmt(row):
+            return " | ".join(str(row[i]).ljust(col_widths[i]) for i in range(len(headers)))
+        
+        results.append(fmt(headers))
+        results.append("-+-".join("-" * w for w in col_widths))
+        for r in rows:
+            results.append(fmt(r))
+        
+        # Statistics
+        results.append("")
+        results.append("="*100)
+        results.append("STATISTICS")
+        results.append("="*100)
+        results.append(f"Total classes scheduled: {len(self.solution)}")
+        
+        # Day distribution
+        day_dist = {}
+        for key, value in self.solution.items():
+            if len(value) == 4:
+                slot_index = value[0]
+            else:
+                slot_index = value[0]
+            day = self.timeslots[slot_index].day
+            day_dist[day] = day_dist.get(day, 0) + 1
+        
+        results.append("\nDay Distribution:")
+        for day, count in sorted(day_dist.items()):
+            results.append(f"  {day}: {count} classes")
+        
+        # Room usage
+        room_usage = {}
+        for key, value in self.solution.items():
+            if len(value) == 4:
+                room_id = value[1]
+            else:
+                room_id = value[1]
+            room_usage[room_id] = room_usage.get(room_id, 0) + 1
+        
+        results.append("\nRoom Usage:")
+        for room, count in sorted(room_usage.items(), key=lambda x: x[1], reverse=True)[:10]:
+            results.append(f"  {room}: {count} classes")
+        
+        self.results_text.insert("1.0", "\n".join(results))
+        self.results_text.configure(state="disabled")
+        
+        # Switch to results tab
+        self.notebook.select(2)
+        
+        messagebox.showinfo("Success", f"Schedule generated successfully!\n{len(self.solution)} classes scheduled.")
+        
+    # Export methods
+    def get_results_folder(self):
+        """Get or create the results folder"""
+        # Use absolute path to timetable/Results folder
+        results_folder = Path(r"D:\projects\timetable\Results")
+        results_folder.mkdir(exist_ok=True)
+        return results_folder
+    
+    def export_csv(self):
+        """Export to CSV"""
+        if not self.solution:
+            messagebox.showwarning("No Data", "Please generate a schedule first.")
+            return
+        
+        results_folder = self.get_results_folder()
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            initialfile="schedule.csv",
+            initialdir=str(results_folder)
+        )
+        
+        if filename:
+            try:
+                write_schedule_csv(filename, self.solution, self.instructors_by_id, self.timeslots)
+                messagebox.showinfo("✅ Success", f"Schedule exported to:\n{filename}")
+                self.animate_status(f"✅ Exported to {Path(filename).name}", self.colors['success'])
+            except Exception as e:
+                messagebox.showerror("❌ Error", f"Export failed:\n{str(e)}")
+                
+    def export_html_full(self):
+        """Export full schedule HTML"""
+        if not self.solution:
+            messagebox.showwarning("No Data", "Please generate a schedule first.")
+            return
+        
+        results_folder = self.get_results_folder()
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".html",
+            filetypes=[("HTML files", "*.html"), ("All files", "*.*")],
+            initialfile="schedule_full.html",
+            initialdir=str(results_folder)
+        )
+        
+        if filename:
+            try:
+                export_schedule_html(self.solution, self.instructors_by_id, self.timeslots, filename)
+                messagebox.showinfo("Success", f"Full schedule exported to:\n{filename}")
+                self.status_label.config(text=f"Exported to {Path(filename).name}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Export failed:\n{str(e)}")
+                
+    def export_html_grid(self):
+        """Export grid format HTML"""
+        if not self.solution:
+            messagebox.showwarning("No Data", "Please generate a schedule first.")
+            return
+        
+        results_folder = self.get_results_folder()
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".html",
+            filetypes=[("HTML files", "*.html"), ("All files", "*.*")],
+            initialfile="schedule_grid.html",
+            initialdir=str(results_folder)
+        )
+        
+        if filename:
+            try:
+                export_grid_html(self.solution, self.instructors_by_id, self.timeslots, filename)
+                messagebox.showinfo("Success", f"Grid schedule exported to:\n{filename}")
+                self.status_label.config(text=f"Exported to {Path(filename).name}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Export failed:\n{str(e)}")
+                
+    def export_html_instructor(self):
+        """Export individual instructor HTML"""
+        if not self.solution:
+            messagebox.showwarning("No Data", "Please generate a schedule first.")
+            return
+            
+        # Create dialog to select instructor
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Select Instructor")
+        dialog.geometry("400x500")
+        
+        ttk.Label(dialog, text="Select an instructor:", font=("Segoe UI", 11)).pack(pady=10)
+        
+        # Listbox with scrollbar
+        frame = ttk.Frame(dialog)
+        frame.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        scrollbar = ttk.Scrollbar(frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        listbox = tk.Listbox(frame, yscrollcommand=scrollbar.set, font=("Segoe UI", 10))
+        listbox.pack(side=tk.LEFT, fill="both", expand=True)
+        scrollbar.config(command=listbox.yview)
+        
+        # Populate listbox
+        instructor_ids = sorted(self.instructors_by_id.keys())
+        for iid in instructor_ids:
+            inst = self.instructors_by_id[iid]
+            listbox.insert(tk.END, f"{inst.name} ({iid})")
+        
+        def on_export():
+            selection = listbox.curselection()
+            if not selection:
+                messagebox.showwarning("No Selection", "Please select an instructor.")
+                return
+                
+            instructor_id = instructor_ids[selection[0]]
+            instructor = self.instructors_by_id[instructor_id]
+            
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".html",
+                filetypes=[("HTML files", "*.html"), ("All files", "*.*")],
+                initialfile=f"schedule_{instructor.name.replace(' ', '_')}.html"
+            )
+            
+            if filename:
+                try:
+                    export_instructor_html(instructor_id, self.solution, 
+                                          self.instructors_by_id, self.timeslots, filename)
+                    messagebox.showinfo("Success", f"Instructor schedule exported to:\n{filename}")
+                    self.status_label.config(text=f"Exported to {Path(filename).name}")
+                    dialog.destroy()
+                except Exception as e:
+                    messagebox.showerror("Error", f"Export failed:\n{str(e)}")
+        
+        ttk.Button(dialog, text="Export Selected", command=on_export, width=20).pack(pady=10)
+        ttk.Button(dialog, text="Cancel", command=dialog.destroy, width=20).pack()
+        
+    def export_all(self):
+        """Export all formats"""
+        if not self.solution:
+            messagebox.showwarning("No Data", "Please generate a schedule first.")
+            return
+        
+        results_folder = self.get_results_folder()
+        directory = filedialog.askdirectory(
+            title="Select directory for exports",
+            initialdir=str(results_folder)
+        )
+        
+        if directory:
+            try:
+                base_path = Path(directory)
+                
+                # CSV
+                write_schedule_csv(str(base_path / "schedule.csv"), 
+                                  self.solution, self.instructors_by_id, self.timeslots)
+                
+                # HTML Full
+                export_schedule_html(self.solution, self.instructors_by_id, 
+                                    self.timeslots, str(base_path / "schedule_full.html"))
+                
+                # HTML Grid
+                export_grid_html(self.solution, self.instructors_by_id, 
+                                self.timeslots, str(base_path / "schedule_grid.html"))
+                
+                # Individual instructors
+                instructors_dir = base_path / "instructors"
+                instructors_dir.mkdir(exist_ok=True)
+                
+                for instructor_id in self.instructors_by_id.keys():
+                    instructor = self.instructors_by_id[instructor_id]
+                    safe_name = instructor.name.replace(' ', '_').replace('/', '_')
+                    export_instructor_html(
+                        instructor_id, self.solution, self.instructors_by_id, 
+                        self.timeslots, 
+                        str(instructors_dir / f"{safe_name}.html")
+                    )
+                
+                messagebox.showinfo("✅ Success", 
+                    f"All exports completed!\n\nFiles saved to:\n{directory}\n\n"
+                    f"• schedule.csv\n"
+                    f"• schedule_full.html\n"
+                    f"• schedule_grid.html\n"
+                    f"• instructors/ (individual HTML files)")
+                self.animate_status("✅ All formats exported successfully", self.colors['success'])
+            except Exception as e:
+                messagebox.showerror("Error", f"Export failed:\n{str(e)}")
 
 
 def run_gui():
-    """Run the main GUI application."""
+    """Main entry point for the GUI"""
     root = tk.Tk()
-    root.title("Timetable Generator (CSP)")
-    root.geometry("1100x720")
-    
-    # Modern color scheme
-    colors = {
-        'primary': '#2E86AB',      # Blue
-        'secondary': '#A23B72',    # Pink
-        'accent': '#F18F01',       # Orange
-        'success': '#4CAF50',      # Green
-        'warning': '#FF9800',      # Orange
-        'error': '#F44336',        # Red
-        'background': '#F5F5F5',   # Light gray
-        'surface': '#FFFFFF',      # White
-        'text': '#333333',         # Dark gray
-        'text_light': '#666666',   # Medium gray
-        'border': '#E0E0E0',       # Light border
-        'hover': '#E3F2FD',        # Light blue hover
-        'selected': '#BBDEFB'      # Light blue selected
-    }
-    
-    # Configure root window
-    root.configure(bg=colors['background'])
-    
-    # Configure ttk styles
-    style = ttk.Style()
-    style.theme_use('clam')
-    
-    # Configure notebook style
-    style.configure('TNotebook', background=colors['background'], borderwidth=0)
-    style.configure('TNotebook.Tab', 
-                   background=colors['surface'], 
-                   foreground=colors['text'],
-                   padding=[20, 10],
-                   font=('Arial', 10, 'bold'))
-    style.map('TNotebook.Tab',
-              background=[('selected', colors['primary']),
-                         ('active', colors['hover'])],
-              foreground=[('selected', 'white'),
-                         ('active', colors['text'])])
-    
-    # Configure button styles
-    style.configure('Modern.TButton',
-                   background=colors['primary'],
-                   foreground='white',
-                   borderwidth=0,
-                   focuscolor='none',
-                   font=('Arial', 9, 'bold'),
-                   padding=[15, 8])
-    style.map('Modern.TButton',
-              background=[('active', colors['secondary']),
-                         ('pressed', colors['accent'])])
-    
-    style.configure('Success.TButton',
-                   background=colors['success'],
-                   foreground='white',
-                   borderwidth=0,
-                   focuscolor='none',
-                   font=('Arial', 9, 'bold'),
-                   padding=[15, 8])
-    style.map('Success.TButton',
-              background=[('active', '#45A049'),
-                         ('pressed', '#3D8B40')])
-    
-    style.configure('Warning.TButton',
-                   background=colors['warning'],
-                   foreground='white',
-                   borderwidth=0,
-                   focuscolor='none',
-                   font=('Arial', 9, 'bold'),
-                   padding=[15, 8])
-    
-    # Configure treeview styles
-    style.configure('Modern.Treeview',
-                   background=colors['surface'],
-                   foreground=colors['text'],
-                   fieldbackground=colors['surface'],
-                   borderwidth=1,
-                   relief='solid')
-    style.configure('Modern.Treeview.Heading',
-                   background=colors['primary'],
-                   foreground='white',
-                   font=('Arial', 9, 'bold'),
-                   borderwidth=0)
-    style.map('Modern.Treeview',
-              background=[('selected', colors['selected'])],
-              foreground=[('selected', colors['text'])])
-    
-    # Configure entry styles
-    style.configure('Modern.TEntry',
-                   fieldbackground=colors['surface'],
-                   borderwidth=1,
-                   relief='solid',
-                   font=('Arial', 9))
-    style.map('Modern.TEntry',
-              focuscolor=[('!focus', colors['border']),
-                         ('focus', colors['primary'])])
-    
-    # Configure label styles
-    style.configure('Modern.TLabel',
-                   background=colors['background'],
-                   foreground=colors['text'],
-                   font=('Arial', 9))
-    
-    style.configure('Title.TLabel',
-                   background=colors['background'],
-                   foreground=colors['primary'],
-                   font=('Arial', 12, 'bold'))
-
-    # Animation functions
-    def animate_button_click(button, original_bg=None):
-        """Animate button click with color change"""
-        if original_bg is None:
-            original_bg = button.cget('bg') if hasattr(button, 'cget') else colors['primary']
-        
-        # Flash effect
-        button.configure(bg=colors['accent'])
-        root.after(100, lambda: button.configure(bg=original_bg))
-    
-    def animate_progress_bar(progress_var, duration=2000):
-        """Animate progress bar filling"""
-        progress_var.set(0)
-        steps = 50
-        step_duration = duration // steps
-        
-        def update_progress(step):
-            if step <= steps:
-                progress_var.set(step / steps * 100)
-                root.after(step_duration, lambda: update_progress(step + 1))
-        
-        update_progress(0)
-    
-    def fade_in_widget(widget, duration=300):
-        """Fade in animation for widgets"""
-        widget.configure(alpha=0.0)
-        steps = 20
-        step_duration = duration // steps
-        
-        def fade_step(step):
-            if step <= steps:
-                alpha = step / steps
-                try:
-                    widget.configure(alpha=alpha)
-                except:
-                    pass  # Some widgets don't support alpha
-                root.after(step_duration, lambda: fade_step(step + 1))
-        
-        fade_step(0)
-    
-    def pulse_animation(widget, color1, color2, cycles=3):
-        """Pulse animation for widgets"""
-        def pulse_step(cycle, use_color1=True):
-            if cycle < cycles:
-                color = color1 if use_color1 else color2
-                try:
-                    widget.configure(bg=color)
-                except:
-                    pass
-                root.after(200, lambda: pulse_step(cycle if use_color1 else cycle + 1, not use_color1))
-        
-        pulse_step(0)
-    
-    def loading_animation(label, text="Generating timetable"):
-        """Loading animation with dots"""
-        dots = 0
-        max_dots = 3
-        
-        def animate_loading():
-            nonlocal dots
-            dots = (dots + 1) % (max_dots + 1)
-            label.configure(text=text + "." * dots)
-            root.after(500, animate_loading)
-        
-        return animate_loading
-
-    # In-memory stores
-    instr_store: List[Instructor] = []
-    room_store: List[Room] = []
-    course_store: List[Course] = []
-
-    timeslots_path_var = tk.StringVar(value="../Data/TimeSlots.csv")
-
-    # Notebook with tabs
-    notebook = ttk.Notebook(root, style='TNotebook')
-    notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-    
-    # Add fade-in animation to notebook
-    root.after(100, lambda: fade_in_widget(notebook))
-
-    # ----- Instructors Tab -----
-    ins_tab = tk.Frame(notebook, bg=colors['background'])
-    notebook.add(ins_tab, text="👨‍🏫 Instructors")
-
-    ins_form = tk.Frame(ins_tab, bg=colors['background'])
-    ins_form.pack(fill=tk.X, pady=6)
-    ins_id = tk.StringVar(); ins_name = tk.StringVar(); ins_role = tk.StringVar(value="Professor")
-    ins_pref = tk.StringVar(value="")
-    ins_quals = tk.StringVar(value="")
-
-    def add_row(parent: tk.Widget, label: str, var: tk.StringVar):
-        r = tk.Frame(parent, bg=colors['background']); r.pack(fill=tk.X, pady=3)
-        label_widget = tk.Label(r, text=label, width=16, anchor="w", 
-                               bg=colors['background'], fg=colors['text'],
-                               font=('Arial', 9, 'bold'))
-        label_widget.pack(side=tk.LEFT, padx=(0, 10))
-        entry = ttk.Entry(r, textvariable=var, style='Modern.TEntry')
-        entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        
-        # Add hover effect
-        def on_enter(e):
-            entry.configure(style='Modern.TEntry')
-        def on_leave(e):
-            entry.configure(style='Modern.TEntry')
-        entry.bind('<Enter>', on_enter)
-        entry.bind('<Leave>', on_leave)
-
-    add_row(ins_form, "InstructorID", ins_id)
-    add_row(ins_form, "Name", ins_name)
-    add_row(ins_form, "Role", ins_role)
-    add_row(ins_form, "PreferredSlots", ins_pref)
-    add_row(ins_form, "QualifiedCourses", ins_quals)
-
-    ins_btns = tk.Frame(ins_form, bg=colors['background']); ins_btns.pack(fill=tk.X, pady=8)
-    ins_tree = ttk.Treeview(ins_tab, columns=("InstructorID","Name","Role","PreferredSlots","QualifiedCourses"), 
-                           show="headings", style='Modern.Treeview')
-    for c in ("InstructorID","Name","Role","PreferredSlots","QualifiedCourses"):
-        ins_tree.heading(c, text=c); ins_tree.column(c, width=160, stretch=True)
-    ins_tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-    
-    # Add scrollbar to treeview
-    ins_scrollbar = ttk.Scrollbar(ins_tab, orient="vertical", command=ins_tree.yview)
-    ins_tree.configure(yscrollcommand=ins_scrollbar.set)
-    ins_scrollbar.pack(side="right", fill="y")
-
-    def ins_refresh():
-        for i in ins_tree.get_children(): ins_tree.delete(i)
-        for ins in instr_store:
-            pref = f"Not on {ins.unavailable_day}" if ins.unavailable_day else ""
-            ins_tree.insert("", tk.END, values=(ins.instructor_id, ins.name, ins.role, pref, ", ".join(ins.qualified_courses)))
-
-    def ins_add():
-        iid = ins_id.get().strip()
-        if not iid:
-            messagebox.showerror("Error", "InstructorID is required"); return
-        from data_loader import parse_unavailable_day, parse_qualified_courses
-        unavailable = parse_unavailable_day(ins_pref.get())
-        quals = parse_qualified_courses(ins_quals.get())
-        existing = [i for i in instr_store if i.instructor_id == iid]
-        if existing:
-            existing[0].name = ins_name.get().strip()
-            existing[0].role = ins_role.get().strip()
-            existing[0].unavailable_day = unavailable
-            existing[0].qualified_courses = quals
-        else:
-            instr_store.append(Instructor(iid, ins_name.get().strip(), ins_role.get().strip(), unavailable, quals))
-        ins_refresh()
-        
-        # Clear form and animate success
-        ins_id.set(""); ins_name.set(""); ins_role.set("Professor")
-        ins_pref.set(""); ins_quals.set("")
-        pulse_animation(ins_tree, colors['success'], colors['surface'])
-
-    def ins_delete():
-        sel = ins_tree.selection()
-        if not sel: return
-        iid = ins_tree.item(sel[0], "values")[0]
-        instr_store[:] = [i for i in instr_store if i.instructor_id != iid]
-        ins_refresh()
-
-    def ins_import():
-        p = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")]);
-        if not p: return
-        try:
-            instr_store[:] = load_instructors(p)
-            ins_refresh()
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-
-    def ins_export():
-        p = filedialog.asksaveasfilename(defaultextension=".csv");
-        if not p: return
-        import csv
-        with open(p, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["InstructorID","Name","Role","PreferredSlots","QualifiedCourses"])
-            for i in instr_store:
-                pref = f"Not on {i.unavailable_day}" if i.unavailable_day else ""
-                w.writerow([i.instructor_id, i.name, i.role, pref, ", ".join(i.qualified_courses)])
-
-    # Create modern buttons with animations
-    add_btn = ttk.Button(ins_btns, text="➕ Add/Update", command=ins_add, style='Success.TButton')
-    add_btn.pack(side=tk.LEFT, padx=2)
-    add_btn.bind('<Button-1>', lambda e: animate_button_click(add_btn))
-    
-    delete_btn = ttk.Button(ins_btns, text="🗑️ Delete", command=ins_delete, style='Warning.TButton')
-    delete_btn.pack(side=tk.LEFT, padx=2)
-    delete_btn.bind('<Button-1>', lambda e: animate_button_click(delete_btn))
-    
-    import_csv_btn = ttk.Button(ins_btns, text="📁 Import CSV", command=ins_import, style='Modern.TButton')
-    import_csv_btn.pack(side=tk.LEFT, padx=2)
-    import_csv_btn.bind('<Button-1>', lambda e: animate_button_click(import_csv_btn))
-    
-    def ins_import_excel():
-        p = filedialog.askopenfilename(filetypes=[("Excel", "*.xlsx;*.xls")]);
-        if not p: return
-        try:
-            instr_store[:] = load_instructors_excel(p)
-            ins_refresh()
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-    import_excel_btn = ttk.Button(ins_btns, text="📊 Import Excel", command=ins_import_excel, style='Modern.TButton')
-    import_excel_btn.pack(side=tk.LEFT, padx=2)
-    import_excel_btn.bind('<Button-1>', lambda e: animate_button_click(import_excel_btn))
-    
-    export_btn = ttk.Button(ins_btns, text="💾 Export CSV", command=ins_export, style='Modern.TButton')
-    export_btn.pack(side=tk.LEFT, padx=2)
-    export_btn.bind('<Button-1>', lambda e: animate_button_click(export_btn))
-
-    # ----- Rooms Tab -----
-    room_tab = tk.Frame(notebook, bg=colors['background'])
-    notebook.add(room_tab, text="🏢 Rooms/Halls")
-    rm_form = tk.Frame(room_tab, bg=colors['background']); rm_form.pack(fill=tk.X, pady=6)
-    rm_id = tk.StringVar(); rm_type = tk.StringVar(value="Lecture"); rm_cap = tk.StringVar(value="80")
-    add_row(rm_form, "RoomID", rm_id); add_row(rm_form, "Type", rm_type); add_row(rm_form, "Capacity", rm_cap)
-    rm_btns = tk.Frame(rm_form, bg=colors['background']); rm_btns.pack(fill=tk.X, pady=8)
-    rm_tree = ttk.Treeview(room_tab, columns=("RoomID","Type","Capacity"), 
-                          show="headings", style='Modern.Treeview')
-    for c in ("RoomID","Type","Capacity"):
-        rm_tree.heading(c, text=c); rm_tree.column(c, width=160, stretch=True)
-    rm_tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-    
-    # Add scrollbar to room treeview
-    rm_scrollbar = ttk.Scrollbar(room_tab, orient="vertical", command=rm_tree.yview)
-    rm_tree.configure(yscrollcommand=rm_scrollbar.set)
-    rm_scrollbar.pack(side="right", fill="y")
-
-    def rm_refresh():
-        for i in rm_tree.get_children(): rm_tree.delete(i)
-        for r in room_store: rm_tree.insert("", tk.END, values=(r.room_id, r.room_type, r.capacity))
-
-    def rm_add():
-        rid = rm_id.get().strip()
-        if not rid: messagebox.showerror("Error", "RoomID is required"); return
-        try: cap = int(rm_cap.get())
-        except Exception: cap = 0
-        ex = [r for r in room_store if r.room_id == rid]
-        if ex:
-            ex[0].room_type = rm_type.get().strip(); ex[0].capacity = cap
-        else:
-            room_store.append(Room(rid, rm_type.get().strip(), cap))
-        rm_refresh()
-
-    def rm_delete():
-        sel = rm_tree.selection();
-        if not sel: return
-        rid = rm_tree.item(sel[0], "values")[0]
-        room_store[:] = [r for r in room_store if r.room_id != rid]
-        rm_refresh()
-
-    def rm_import():
-        p = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")]);
-        if not p: return
-        try:
-            room_store[:] = load_rooms(p); rm_refresh()
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-
-    def rm_export():
-        p = filedialog.asksaveasfilename(defaultextension=".csv");
-        if not p: return
-        import csv
-        with open(p, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f); w.writerow(["RoomID","Type","Capacity"])
-            for r in room_store: w.writerow([r.room_id, r.room_type, r.capacity])
-
-    # Create modern room buttons with animations
-    rm_add_btn = ttk.Button(rm_btns, text="➕ Add/Update", command=rm_add, style='Success.TButton')
-    rm_add_btn.pack(side=tk.LEFT, padx=2)
-    rm_add_btn.bind('<Button-1>', lambda e: animate_button_click(rm_add_btn))
-    
-    rm_delete_btn = ttk.Button(rm_btns, text="🗑️ Delete", command=rm_delete, style='Warning.TButton')
-    rm_delete_btn.pack(side=tk.LEFT, padx=2)
-    rm_delete_btn.bind('<Button-1>', lambda e: animate_button_click(rm_delete_btn))
-    
-    rm_import_btn = ttk.Button(rm_btns, text="📁 Import CSV", command=rm_import, style='Modern.TButton')
-    rm_import_btn.pack(side=tk.LEFT, padx=2)
-    rm_import_btn.bind('<Button-1>', lambda e: animate_button_click(rm_import_btn))
-    
-    def rm_import_excel():
-        p = filedialog.askopenfilename(filetypes=[("Excel", "*.xlsx;*.xls")]);
-        if not p: return
-        try:
-            room_store[:] = load_rooms_excel(p); rm_refresh()
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-    rm_import_excel_btn = ttk.Button(rm_btns, text="📊 Import Excel", command=rm_import_excel, style='Modern.TButton')
-    rm_import_excel_btn.pack(side=tk.LEFT, padx=2)
-    rm_import_excel_btn.bind('<Button-1>', lambda e: animate_button_click(rm_import_excel_btn))
-    
-    rm_export_btn = ttk.Button(rm_btns, text="💾 Export CSV", command=rm_export, style='Modern.TButton')
-    rm_export_btn.pack(side=tk.LEFT, padx=2)
-    rm_export_btn.bind('<Button-1>', lambda e: animate_button_click(rm_export_btn))
-
-    # ----- Courses Tab -----
-    crs_tab = tk.Frame(notebook, bg=colors['background'])
-    notebook.add(crs_tab, text="📚 Courses")
-    crs_form = tk.Frame(crs_tab, bg=colors['background']); crs_form.pack(fill=tk.X, pady=6)
-    c_id = tk.StringVar(); c_name = tk.StringVar(); c_type = tk.StringVar(value="Lecture"); c_cred = tk.StringVar(value="")
-    add_row(crs_form, "CourseID", c_id); add_row(crs_form, "CourseName", c_name)
-    add_row(crs_form, "Type", c_type); add_row(crs_form, "Credits", c_cred)
-    crs_btns = tk.Frame(crs_form, bg=colors['background']); crs_btns.pack(fill=tk.X, pady=8)
-    crs_tree = ttk.Treeview(crs_tab, columns=("CourseID","CourseName","Type","Credits"), 
-                            show="headings", style='Modern.Treeview')
-    for c in ("CourseID","CourseName","Type","Credits"):
-        crs_tree.heading(c, text=c); crs_tree.column(c, width=160, stretch=True)
-    crs_tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-    
-    # Add scrollbar to course treeview
-    crs_scrollbar = ttk.Scrollbar(crs_tab, orient="vertical", command=crs_tree.yview)
-    crs_tree.configure(yscrollcommand=crs_scrollbar.set)
-    crs_scrollbar.pack(side="right", fill="y")
-
-    def crs_refresh():
-        for i in crs_tree.get_children(): crs_tree.delete(i)
-        for c in course_store: crs_tree.insert("", tk.END, values=(c.course_id, c.course_name, c.course_type, c.credits if c.credits is not None else ""))
-
-    def crs_add():
-        cid = c_id.get().strip()
-        if not cid: messagebox.showerror("Error", "CourseID is required"); return
-        try: cr = int(c_cred.get()) if c_cred.get().strip() else None
-        except Exception: cr = None
-        ex = [c for c in course_store if c.course_id == cid]
-        if ex:
-            ex[0].course_name = c_name.get().strip(); ex[0].course_type = c_type.get().strip(); ex[0].credits = cr
-        else:
-            course_store.append(Course(cid, c_name.get().strip(), c_type.get().strip(), cr))
-        crs_refresh()
-
-    def crs_delete():
-        sel = crs_tree.selection();
-        if not sel: return
-        cid = crs_tree.item(sel[0], "values")[0]
-        course_store[:] = [c for c in course_store if c.course_id != cid]
-        crs_refresh()
-
-    def crs_import():
-        p = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")]);
-        if not p: return
-        try: course_store[:] = load_courses(p); crs_refresh()
-        except Exception as e: messagebox.showerror("Error", str(e))
-
-    def crs_export():
-        p = filedialog.asksaveasfilename(defaultextension=".csv");
-        if not p: return
-        import csv
-        with open(p, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f); w.writerow(["CourseID","CourseName","Type","Credits"])
-            for c in course_store: w.writerow([c.course_id, c.course_name, c.course_type, c.credits if c.credits is not None else ""]) 
-
-    # Create modern course buttons with animations
-    crs_add_btn = ttk.Button(crs_btns, text="➕ Add/Update", command=crs_add, style='Success.TButton')
-    crs_add_btn.pack(side=tk.LEFT, padx=2)
-    crs_add_btn.bind('<Button-1>', lambda e: animate_button_click(crs_add_btn))
-    
-    crs_delete_btn = ttk.Button(crs_btns, text="🗑️ Delete", command=crs_delete, style='Warning.TButton')
-    crs_delete_btn.pack(side=tk.LEFT, padx=2)
-    crs_delete_btn.bind('<Button-1>', lambda e: animate_button_click(crs_delete_btn))
-    
-    crs_import_btn = ttk.Button(crs_btns, text="📁 Import CSV", command=crs_import, style='Modern.TButton')
-    crs_import_btn.pack(side=tk.LEFT, padx=2)
-    crs_import_btn.bind('<Button-1>', lambda e: animate_button_click(crs_import_btn))
-    
-    def crs_import_excel():
-        p = filedialog.askopenfilename(filetypes=[("Excel", "*.xlsx;*.xls")]);
-        if not p: return
-        try: course_store[:] = load_courses_excel(p); crs_refresh()
-        except Exception as e: messagebox.showerror("Error", str(e))
-    crs_import_excel_btn = ttk.Button(crs_btns, text="📊 Import Excel", command=crs_import_excel, style='Modern.TButton')
-    crs_import_excel_btn.pack(side=tk.LEFT, padx=2)
-    crs_import_excel_btn.bind('<Button-1>', lambda e: animate_button_click(crs_import_excel_btn))
-    
-    crs_export_btn = ttk.Button(crs_btns, text="💾 Export CSV", command=crs_export, style='Modern.TButton')
-    crs_export_btn.pack(side=tk.LEFT, padx=2)
-    crs_export_btn.bind('<Button-1>', lambda e: animate_button_click(crs_export_btn))
-
-    # ----- Bottom controls -----
-    bottom = tk.Frame(root, bg=colors['background']); bottom.pack(fill=tk.X, padx=10, pady=(0,10))
-    
-    # TimeSlots section with modern styling
-    timeslots_frame = tk.Frame(bottom, bg=colors['surface'], relief='solid', bd=1)
-    timeslots_frame.pack(fill=tk.X, pady=5)
-    
-    tk.Label(timeslots_frame, text="⏰ TimeSlots:", 
-             bg=colors['surface'], fg=colors['text'], font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=5)
-    
-    timeslots_entry = ttk.Entry(timeslots_frame, textvariable=timeslots_path_var, width=40, style='Modern.TEntry')
-    timeslots_entry.pack(side=tk.LEFT, padx=5)
-    
-    def browse_ts_csv():
-        p = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")]);
-        if p: timeslots_path_var.set(p)
-    def browse_ts_excel():
-        p = filedialog.askopenfilename(filetypes=[("Excel", "*.xlsx;*.xls")]);
-        if p: timeslots_path_var.set(p)
-    
-    ts_csv_btn = ttk.Button(timeslots_frame, text="📁 Import CSV", command=browse_ts_csv, style='Modern.TButton')
-    ts_csv_btn.pack(side=tk.LEFT, padx=2)
-    ts_csv_btn.bind('<Button-1>', lambda e: animate_button_click(ts_csv_btn))
-    
-    ts_excel_btn = ttk.Button(timeslots_frame, text="📊 Import Excel", command=browse_ts_excel, style='Modern.TButton')
-    ts_excel_btn.pack(side=tk.LEFT, padx=2)
-    ts_excel_btn.bind('<Button-1>', lambda e: animate_button_click(ts_excel_btn))
-    
-    # Main action buttons
-    action_frame = tk.Frame(bottom, bg=colors['background'])
-    action_frame.pack(fill=tk.X, pady=5)
-    
-    generate_btn = ttk.Button(action_frame, text="🚀 Generate Timetable", style='Success.TButton')
-    generate_btn.pack(side=tk.LEFT, padx=5)
-    generate_btn.bind('<Button-1>', lambda e: animate_button_click(generate_btn))
-    
-    save_btn = ttk.Button(action_frame, text="💾 Save Schedule CSV", state=tk.DISABLED, style='Modern.TButton')
-    save_btn.pack(side=tk.LEFT, padx=5)
-    save_btn.bind('<Button-1>', lambda e: animate_button_click(save_btn))
-    
-    # Progress bar for loading animation
-    progress_var = tk.DoubleVar()
-    progress_bar = ttk.Progressbar(action_frame, variable=progress_var, maximum=100, length=200)
-    progress_bar.pack(side=tk.LEFT, padx=10)
-    progress_bar.pack_forget()  # Hide initially
-    
-    # Loading label
-    loading_label = tk.Label(action_frame, text="", bg=colors['background'], fg=colors['primary'], font=('Arial', 9, 'bold'))
-    loading_label.pack(side=tk.LEFT, padx=5)
-    loading_label.pack_forget()  # Hide initially
-
-    # Export section with modern styling
-    export_box = tk.Frame(root, bg=colors['surface'], relief='solid', bd=1)
-    export_box.pack(fill=tk.X, padx=10, pady=(0,10))
-    
-    tk.Label(export_box, text="📄 Export Instructor Table:", 
-             bg=colors['surface'], fg=colors['text'], font=('Arial', 9, 'bold')).pack(side=tk.LEFT, padx=5)
-    export_choice = tk.StringVar(value="")
-    export_combo = ttk.Combobox(export_box, textvariable=export_choice, width=30, values=[])
-    export_combo.pack(side=tk.LEFT, padx=5)
-    
-    export_btn = ttk.Button(export_box, text="📊 Export PDF", state=tk.DISABLED, style='Modern.TButton')
-    export_btn.pack(side=tk.LEFT, padx=5)
-    export_btn.bind('<Button-1>', lambda e: animate_button_click(export_btn))
-    
-    # Add HTML export buttons
-    html_export_btn = ttk.Button(export_box, text="🌐 Export All HTML", state=tk.DISABLED, style='Modern.TButton')
-    html_export_btn.pack(side=tk.LEFT, padx=5)
-    html_export_btn.bind('<Button-1>', lambda e: animate_button_click(html_export_btn))
-    
-    html_grid_btn = ttk.Button(export_box, text="📅 Export Grid HTML", state=tk.DISABLED, style='Modern.TButton')
-    html_grid_btn.pack(side=tk.LEFT, padx=5)
-    html_grid_btn.bind('<Button-1>', lambda e: animate_button_click(html_grid_btn))
-    
-    html_instructor_btn = ttk.Button(export_box, text="👨‍🏫 Export Instructor HTML", state=tk.DISABLED, style='Modern.TButton')
-    html_instructor_btn.pack(side=tk.LEFT, padx=5)
-    html_instructor_btn.bind('<Button-1>', lambda e: animate_button_click(html_instructor_btn))
-
-    # Results table with modern styling
-    results_frame = tk.Frame(root, bg=colors['background'])
-    results_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-    
-    # Results title
-    results_title = tk.Label(results_frame, text="📋 Generated Schedule", 
-                             bg=colors['background'], fg=colors['primary'], 
-                             font=('Arial', 12, 'bold'))
-    results_title.pack(pady=(0, 5))
-    
-    columns = ("Instructor", "ID", "Day", "Time", "Room", "Course")
-    tree = ttk.Treeview(results_frame, columns=columns, show="headings", style='Modern.Treeview')
-    for col in columns:
-        tree.heading(col, text=col); tree.column(col, width=150, stretch=True)
-    tree.pack(fill=tk.BOTH, expand=True)
-    
-    # Add scrollbar to results table
-    results_scrollbar = ttk.Scrollbar(results_frame, orient="vertical", command=tree.yview)
-    tree.configure(yscrollcommand=results_scrollbar.set)
-    results_scrollbar.pack(side="right", fill="y")
-
-    state: Dict[str, object] = {}
-
-    def populate_tree(solution: Dict[str, Assignment], instructors_by_id: Dict[str, Instructor], timeslots: List[TimeSlot]):
-        for i in tree.get_children(): tree.delete(i)
-        rows: List[Tuple[str, str, str, str, str, str]] = []
-        from output_utils import get_proper_sort_key
-        for iid, (slot_index, room_id, course) in sorted(solution.items(), key=lambda kv: get_proper_sort_key(kv, timeslots)):
-            ins = instructors_by_id[iid]; ts = timeslots[slot_index]
-            rows.append((ins.name, ins.instructor_id, ts.day, f"{ts.start_time}-{ts.end_time}", room_id, course))
-        for r in rows: tree.insert("", tk.END, values=r)
-
-    def on_generate():
-        def generate_worker():
-            try:
-                # Show loading animation
-                progress_bar.pack(side=tk.LEFT, padx=10)
-                loading_label.pack(side=tk.LEFT, padx=5)
-                loading_anim = loading_animation(loading_label, "Generating timetable")
-                loading_anim()
-                
-                # Animate progress bar
-                animate_progress_bar(progress_var, 3000)
-                
-                path = timeslots_path_var.get()
-                if path.lower().endswith((".xlsx", ".xls")):
-                    ts = load_timeslots_excel(path)
-                else:
-                    ts = load_timeslots(path)
-                solution, ins_by_id, timeslots = generate_schedule_from_memory(instr_store, room_store, ts)
-                
-                # Update UI in main thread
-                root.after(0, lambda: update_ui_after_generation(solution, ins_by_id, timeslots))
-                
-            except Exception as e:
-                root.after(0, lambda: handle_generation_error(e))
-        
-        def update_ui_after_generation(solution, ins_by_id, timeslots):
-            state["solution"] = solution
-            state["instructors_by_id"] = ins_by_id
-            state["timeslots"] = timeslots
-            populate_tree(solution, ins_by_id, timeslots)
-            save_btn.config(state=tk.NORMAL)
-            export_btn.config(state=tk.NORMAL)
-            html_export_btn.config(state=tk.NORMAL)
-            html_grid_btn.config(state=tk.NORMAL)
-            html_instructor_btn.config(state=tk.NORMAL)
-            export_combo.config(values=[f"{i.instructor_id} - {i.name}" for i in instr_store])
-            
-            # Hide loading elements
-            progress_bar.pack_forget()
-            loading_label.pack_forget()
-            
-            # Show success animation
-            pulse_animation(tree, colors['success'], colors['surface'])
-            messagebox.showinfo("Success", "Timetable generated successfully! 🎉")
-        
-        def handle_generation_error(e):
-            # Hide loading elements
-            progress_bar.pack_forget()
-            loading_label.pack_forget()
-            messagebox.showerror("Error", str(e))
-        
-        # Start generation in background thread
-        threading.Thread(target=generate_worker, daemon=True).start()
-
-    def on_save():
-        if "solution" not in state: return
-        p = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv")])
-        if not p: return
-        write_schedule_csv(p, state["solution"], state["instructors_by_id"], state["timeslots"])  # type: ignore
-        messagebox.showinfo("Saved", f"Schedule saved to {p}")
-
-    def on_export():
-        if "solution" not in state: return
-        sel = export_choice.get()
-        if not sel:
-            messagebox.showerror("Error", "Choose an instructor"); return
-        iid = sel.split(" - ")[0]
-        p = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")])
-        if not p: return
-        # PDF export would go here
-        messagebox.showinfo("Saved", f"Instructor table saved to {p}")
-
-    def on_html_export():
-        if "solution" not in state: return
-        p = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML", "*.html")])
-        if not p: return
-        try:
-            export_schedule_html(state["solution"], state["instructors_by_id"], state["timeslots"], p)  # type: ignore
-            messagebox.showinfo("Success", f"HTML schedule exported to {p}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to export HTML: {str(e)}")
-
-    def on_instructor_html_export():
-        if "solution" not in state: return
-        sel = export_choice.get()
-        if not sel:
-            messagebox.showerror("Error", "Choose an instructor"); return
-        iid = sel.split(" - ")[0]
-        p = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML", "*.html")])
-        if not p: return
-        try:
-            export_instructor_html(iid, state["solution"], state["instructors_by_id"], state["timeslots"], p)  # type: ignore
-            messagebox.showinfo("Success", f"Instructor timetable exported to {p}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to export instructor HTML: {str(e)}")
-
-    def on_grid_html_export():
-        if "solution" not in state: return
-        p = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML", "*.html")])
-        if not p: return
-        try:
-            export_grid_html(state["solution"], state["instructors_by_id"], state["timeslots"], p)  # type: ignore
-            messagebox.showinfo("Success", f"Grid timetable exported to {p}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to export grid HTML: {str(e)}")
-
-    generate_btn.config(command=on_generate)
-    save_btn.config(command=on_save)
-    export_btn.config(command=on_export)
-    html_export_btn.config(command=on_html_export)
-    html_grid_btn.config(command=on_grid_html_export)
-    html_instructor_btn.config(command=on_instructor_html_export)
-
-    # Initial refresh
-    ins_refresh(); rm_refresh(); crs_refresh()
-
+    app = TimetableGeneratorGUI(root)
     root.mainloop()
 
 

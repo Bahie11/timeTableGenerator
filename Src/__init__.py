@@ -16,3 +16,5 @@ Modules:
 __version__ = "1.0.0"
 __author__ = "Timetable Generator Team"
 __description__ = "A modular timetable generator using CSP approach"
+
+# package marker for Src module

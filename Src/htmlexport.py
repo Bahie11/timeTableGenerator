@@ -3,13 +3,8 @@ HTML export functionality for timetables.
 """
 import time
 from typing import Dict, List
-
-try:
-    from .models import Assignment, Instructor, TimeSlot
-    from .output_utils import get_proper_sort_key
-except ImportError:
-    from models import Assignment, Instructor, TimeSlot
-    from output_utils import get_proper_sort_key
+from models import Instructor, TimeSlot, Assignment
+from output_utils import get_proper_sort_key
 
 
 def export_schedule_html(solution: Dict[str, Assignment], instructors_by_id: Dict[str, Instructor], timeslots: List[TimeSlot], path: str):
@@ -22,12 +17,21 @@ def export_schedule_html(solution: Dict[str, Assignment], instructors_by_id: Dic
     
     # Group by day
     schedule_by_day = {}
-    for instructor_id, (slot_index, room_id, course) in sorted_assignments:
+    for key, value in sorted_assignments:
+        # Handle both old format (3 values) and new format (4 values)
+        if len(value) == 4:
+            slot_index, room_id, course, instructor_id = value
+        else:
+            slot_index, room_id, course = value
+            instructor_id = key
+            
         ts = timeslots[slot_index]
         day = ts.day
         if day not in schedule_by_day:
             schedule_by_day[day] = []
-        instructor = instructors_by_id[instructor_id]
+        instructor = instructors_by_id.get(instructor_id)
+        if not instructor:
+            continue
         schedule_by_day[day].append({
             'instructor_name': instructor.name,
             'instructor_id': instructor.instructor_id,
@@ -256,14 +260,20 @@ def export_instructor_html(instructor_id: str, solution: Dict[str, Assignment], 
     if not solution or not timeslots:
         raise ValueError("No schedule data available")
     
-    if instructor_id not in solution:
-        raise ValueError(f"No schedule found for instructor {instructor_id}")
-    
-    instructor = instructors_by_id[instructor_id]
+    instructor = instructors_by_id.get(instructor_id)
+    if not instructor:
+        raise ValueError(f"Instructor {instructor_id} not found in instructors list")
     
     # Get all assignments for this instructor (in case they have multiple)
     instructor_assignments = []
-    for iid, (slot_idx, room, course_code) in solution.items():
+    for key, value in solution.items():
+        # Handle both old format (3 values) and new format (4 values)
+        if len(value) == 4:
+            slot_idx, room, course_code, iid = value
+        else:
+            slot_idx, room, course_code = value
+            iid = key
+            
         if iid == instructor_id:
             ts_obj = timeslots[slot_idx]
             instructor_assignments.append({
@@ -272,6 +282,10 @@ def export_instructor_html(instructor_id: str, solution: Dict[str, Assignment], 
                 'room': room,
                 'course': course_code
             })
+    
+    # Check if we found any assignments for this instructor
+    if not instructor_assignments:
+        raise ValueError(f"No schedule found for instructor {instructor_id}")
     
     # Sort by day and time using proper weekday order
     weekday_order = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -453,12 +467,12 @@ def export_instructor_html(instructor_id: str, solution: Dict[str, Assignment], 
                     <div class="info-value">{instructor.instructor_id}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Role</div>
-                    <div class="info-value">{instructor.role}</div>
-                </div>
-                <div class="info-item">
                     <div class="info-label">Total Classes</div>
                     <div class="info-value">{len(instructor_assignments)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Unavailable</div>
+                    <div class="info-value">{instructor.unavailable_day or 'N/A'}</div>
                 </div>
             </div>
         </div>
@@ -559,9 +573,18 @@ def export_grid_html(solution: Dict[str, Assignment], instructors_by_id: Dict[st
             grid_data[day][time_slot] = []
     
     # Populate grid with schedule data
-    for instructor_id, (slot_index, room_id, course) in solution.items():
+    for key, value in solution.items():
+        # Handle both old format (3 values) and new format (4 values)
+        if len(value) == 4:
+            slot_index, room_id, course, instructor_id = value
+        else:
+            slot_index, room_id, course = value
+            instructor_id = key
+            
         ts = timeslots[slot_index]
-        instructor = instructors_by_id[instructor_id]
+        instructor = instructors_by_id.get(instructor_id)
+        if not instructor:
+            continue
         time_key = f"{ts.start_time}-{ts.end_time}"
         
         if ts.day in grid_data and time_key in grid_data[ts.day]:

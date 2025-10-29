@@ -1,0 +1,253 @@
+2025-10-21 18:35:27,973 INFO: generate_schedule_from_memory start: instructors=56 rooms=56 timeslots=20 (fast_mode=True)
+2025-10-21 18:35:28,032 INFO: Using FAST GREEDY mode for quick scheduling
+2025-10-21 18:35:28,058 INFO: Greedy search completed: 56/56 instructors scheduled
+2025-10-21 22:10:04,747 INFO: generate_schedule_from_memory start: instructors=56 rooms=56 timeslots=20 (fast_mode=True)
+2025-10-21 22:10:04,844 INFO: Using FAST GREEDY mode for quick scheduling
+2025-10-21 22:10:04,882 INFO: Greedy search completed: 56/56 instructors scheduled
+2025-10-21 22:21:55,176 INFO: Enhanced scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-21 22:21:55,177 INFO: Mode: FAST (Balanced Greedy)
+2025-10-21 22:21:55,289 INFO: Using BALANCED GREEDY algorithm (fast, good distribution)
+2025-10-21 22:21:55,289 INFO: Starting balanced greedy search for 56 instructors
+2025-10-21 22:21:55,290 DEBUG: Assigned instructor PROF30 to R108 at slot 0
+2025-10-21 22:21:55,290 DEBUG: Assigned instructor PROF27 to R105 at slot 7
+2025-10-21 22:21:55,291 DEBUG: Assigned instructor PROF28 to R101 at slot 10
+2025-10-21 22:21:55,291 DEBUG: Assigned instructor PROF29 to R110 at slot 16
+2025-10-21 22:21:55,292 DEBUG: Assigned instructor PROF31 to R109 at slot 12
+2025-10-21 22:21:55,292 DEBUG: Assigned instructor PROF32 to R114 at slot 7
+2025-10-21 22:21:55,293 DEBUG: Assigned instructor PROF23 to L12 at slot 1
+2025-10-21 22:21:55,294 DEBUG: Assigned instructor PROF24 to L6 at slot 19
+2025-10-21 22:21:55,295 DEBUG: Assigned instructor PROF33 to R113 at slot 10
+2025-10-21 22:21:55,296 DEBUG: Assigned instructor PROF34 to R107 at slot 15
+2025-10-21 22:21:55,297 DEBUG: Assigned instructor PROF35 to R103 at slot 5
+2025-10-21 22:21:55,298 DEBUG: Assigned instructor PROF04 to R112 at slot 10
+2025-10-21 22:21:55,299 DEBUG: Assigned instructor PROF25 to L36 at slot 2
+2025-10-21 22:21:55,301 DEBUG: Assigned instructor PROF03 to L42 at slot 19
+2025-10-21 22:21:55,303 DEBUG: Assigned instructor PROF05 to L18 at slot 12
+2025-10-21 22:21:55,305 DEBUG: Assigned instructor PROF08 to L34 at slot 0
+2025-10-21 22:21:55,307 DEBUG: Assigned instructor PROF26 to L3 at slot 19
+2025-10-21 22:21:55,309 DEBUG: Assigned instructor PROF22 to L29 at slot 11
+2025-10-21 22:21:55,311 DEBUG: Assigned instructor PROF19 to L33 at slot 13
+2025-10-21 22:21:55,313 DEBUG: Assigned instructor PROF20 to L22 at slot 5
+2025-10-21 22:21:55,315 DEBUG: Assigned instructor PROF10 to L2 at slot 0
+2025-10-21 22:21:55,317 DEBUG: Assigned instructor PROF21 to L24 at slot 19
+2025-10-21 22:21:55,322 DEBUG: Assigned instructor PROF00 to L9 at slot 5
+2025-10-21 22:21:55,326 DEBUG: Assigned instructor PROF01 to L25 at slot 15
+2025-10-21 22:21:55,331 DEBUG: Assigned instructor AP13 to L32 at slot 11
+2025-10-21 22:21:55,336 DEBUG: Assigned instructor AP14 to L35 at slot 17
+2025-10-21 22:21:55,339 DEBUG: Assigned instructor AP15 to L13 at slot 12
+2025-10-21 22:21:55,342 DEBUG: Assigned instructor AP19 to L14 at slot 2
+2025-10-21 22:21:55,345 DEBUG: Assigned instructor AP20 to L5 at slot 4
+2025-10-21 22:21:55,348 DEBUG: Assigned instructor AP08 to R104 at slot 11
+2025-10-21 22:21:55,356 DEBUG: Assigned instructor AP12 to L23 at slot 1
+2025-10-21 22:21:55,360 DEBUG: Assigned instructor AP16 to L28 at slot 15
+2025-10-21 22:21:55,364 DEBUG: Assigned instructor AP17 to L40 at slot 17
+2025-10-21 22:21:55,370 DEBUG: Assigned instructor PROF12 to L31 at slot 7
+2025-10-21 22:21:55,376 DEBUG: Assigned instructor PROF13 to L26 at slot 9
+2025-10-21 22:21:55,381 DEBUG: Assigned instructor AP02 to L4 at slot 19
+2025-10-21 22:21:55,387 DEBUG: Assigned instructor AP09 to L27 at slot 11
+2025-10-21 22:21:55,390 DEBUG: Assigned instructor AP18 to L21 at slot 1
+2025-10-21 22:21:55,394 DEBUG: Assigned instructor PROF02 to L19 at slot 4
+2025-10-21 22:21:55,398 DEBUG: Assigned instructor AP05 to L11 at slot 13
+2025-10-21 22:21:55,402 DEBUG: Assigned instructor AP07 to L8 at slot 0
+2025-10-21 22:21:55,406 DEBUG: Assigned instructor AP10 to L30 at slot 5
+2025-10-21 22:21:55,410 DEBUG: Assigned instructor AP11 to L15 at slot 16
+2025-10-21 22:21:55,440 DEBUG: Assigned instructor AP06 to R106 at slot 10
+2025-10-21 22:21:55,445 DEBUG: Assigned instructor PROF11 to L20 at slot 14
+2025-10-21 22:21:55,452 DEBUG: Assigned instructor PROF16 to R111 at slot 10
+2025-10-21 22:21:55,458 DEBUG: Assigned instructor AP01 to L16 at slot 5
+2025-10-21 22:21:55,463 DEBUG: Assigned instructor AP04 to L39 at slot 1
+2025-10-21 22:21:55,468 DEBUG: Assigned instructor PROF14 to L38 at slot 19
+2025-10-21 22:21:55,474 DEBUG: Assigned instructor PROF06 to L17 at slot 15
+2025-10-21 22:21:55,479 DEBUG: Assigned instructor PROF18 to L7 at slot 6
+2025-10-21 22:21:55,487 DEBUG: Assigned instructor AP03 to R102 at slot 0
+2025-10-21 22:21:55,494 DEBUG: Assigned instructor PROF07 to L1 at slot 18
+2025-10-21 22:21:55,503 DEBUG: Assigned instructor PROF09 to L41 at slot 15
+2025-10-21 22:21:55,509 DEBUG: Assigned instructor PROF15 to L37 at slot 9
+2025-10-21 22:21:55,522 DEBUG: Assigned instructor PROF17 to L10 at slot 16
+2025-10-21 22:21:55,522 INFO: Balanced greedy search completed: 56/56 instructors scheduled
+2025-10-21 22:21:55,522 INFO: Room usage distribution: {'R111': 1, 'R105': 1, 'R102': 1, 'R108': 1, 'R113': 1, 'R106': 1, 'R103': 1, 'R114': 1, 'R101': 1, 'R112': 1}
+2025-10-21 22:21:55,522 INFO: Day distribution: {'Monday': 11, 'Sunday': 11, 'Wednesday': 11, 'Tuesday': 11, 'Thursday': 12}
+2025-10-21 22:21:55,522 INFO: \u2705 Successfully scheduled 56/56 instructors
+2025-10-21 22:23:19,407 INFO: Enhanced scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-21 22:23:19,407 INFO: Mode: FAST (Balanced Greedy)
+2025-10-21 22:23:19,503 INFO: Using BALANCED GREEDY algorithm (fast, good distribution)
+2025-10-21 22:23:19,503 INFO: Starting balanced greedy search for 56 instructors
+2025-10-21 22:23:19,504 DEBUG: Assigned instructor PROF30 to R109 at slot 2
+2025-10-21 22:23:19,504 DEBUG: Assigned instructor PROF27 to R111 at slot 4
+2025-10-21 22:23:19,505 DEBUG: Assigned instructor PROF28 to R112 at slot 8
+2025-10-21 22:23:19,505 DEBUG: Assigned instructor PROF29 to R110 at slot 19
+2025-10-21 22:23:19,506 DEBUG: Assigned instructor PROF31 to R113 at slot 14
+2025-10-21 22:23:19,506 DEBUG: Assigned instructor PROF32 to R103 at slot 18
+2025-10-21 22:23:19,507 DEBUG: Assigned instructor PROF23 to L27 at slot 10
+2025-10-21 22:23:19,508 DEBUG: Assigned instructor PROF24 to L37 at slot 1
+2025-10-21 22:23:19,509 DEBUG: Assigned instructor PROF33 to R105 at slot 6
+2025-10-21 22:23:19,510 DEBUG: Assigned instructor PROF34 to R114 at slot 13
+2025-10-21 22:23:19,511 DEBUG: Assigned instructor PROF35 to R106 at slot 13
+2025-10-21 22:23:19,512 DEBUG: Assigned instructor PROF04 to L11 at slot 19
+2025-10-21 22:23:19,513 DEBUG: Assigned instructor PROF25 to L34 at slot 4
+2025-10-21 22:23:19,516 DEBUG: Assigned instructor PROF03 to L26 at slot 1
+2025-10-21 22:23:19,518 DEBUG: Assigned instructor PROF05 to L35 at slot 8
+2025-10-21 22:23:19,520 DEBUG: Assigned instructor PROF08 to L38 at slot 9
+2025-10-21 22:23:19,521 DEBUG: Assigned instructor PROF26 to L36 at slot 19
+2025-10-21 22:23:19,523 DEBUG: Assigned instructor PROF22 to L18 at slot 4
+2025-10-21 22:23:19,525 DEBUG: Assigned instructor PROF19 to L1 at slot 13
+2025-10-21 22:23:19,528 DEBUG: Assigned instructor PROF20 to L10 at slot 1
+2025-10-21 22:23:19,531 DEBUG: Assigned instructor PROF10 to L28 at slot 1
+2025-10-21 22:23:19,533 DEBUG: Assigned instructor PROF21 to L32 at slot 18
+2025-10-21 22:23:19,536 DEBUG: Assigned instructor PROF00 to L23 at slot 7
+2025-10-21 22:23:19,539 DEBUG: Assigned instructor PROF01 to L2 at slot 15
+2025-10-21 22:23:19,541 DEBUG: Assigned instructor AP13 to L25 at slot 8
+2025-10-21 22:23:19,545 DEBUG: Assigned instructor AP14 to L17 at slot 3
+2025-10-21 22:23:19,548 DEBUG: Assigned instructor AP15 to L19 at slot 12
+2025-10-21 22:23:19,553 DEBUG: Assigned instructor AP19 to L24 at slot 11
+2025-10-21 22:23:19,559 DEBUG: Assigned instructor AP20 to L8 at slot 7
+2025-10-21 22:23:19,565 DEBUG: Assigned instructor AP08 to L21 at slot 19
+2025-10-21 22:23:19,569 DEBUG: Assigned instructor AP12 to L4 at slot 14
+2025-10-21 22:23:19,574 DEBUG: Assigned instructor AP16 to L15 at slot 11
+2025-10-21 22:23:19,580 DEBUG: Assigned instructor AP17 to L31 at slot 3
+2025-10-21 22:23:19,586 DEBUG: Assigned instructor PROF12 to L14 at slot 5
+2025-10-21 22:23:19,591 DEBUG: Assigned instructor PROF13 to L22 at slot 17
+2025-10-21 22:23:19,595 DEBUG: Assigned instructor AP02 to L6 at slot 12
+2025-10-21 22:23:19,601 DEBUG: Assigned instructor AP09 to L30 at slot 16
+2025-10-21 22:23:19,605 DEBUG: Assigned instructor AP18 to L13 at slot 3
+2025-10-21 22:23:19,609 DEBUG: Assigned instructor PROF02 to R107 at slot 8
+2025-10-21 22:23:19,614 DEBUG: Assigned instructor AP05 to L20 at slot 7
+2025-10-21 22:23:19,620 DEBUG: Assigned instructor AP07 to L9 at slot 5
+2025-10-21 22:23:19,625 DEBUG: Assigned instructor AP10 to L40 at slot 9
+2025-10-21 22:23:19,630 DEBUG: Assigned instructor AP11 to L16 at slot 17
+2025-10-21 22:23:19,634 DEBUG: Assigned instructor AP06 to L7 at slot 14
+2025-10-21 22:23:19,638 DEBUG: Assigned instructor PROF11 to L42 at slot 9
+2025-10-21 22:23:19,643 DEBUG: Assigned instructor PROF16 to L33 at slot 7
+2025-10-21 22:23:19,648 DEBUG: Assigned instructor AP01 to L12 at slot 16
+2025-10-21 22:23:19,653 DEBUG: Assigned instructor AP04 to L3 at slot 2
+2025-10-21 22:23:19,657 DEBUG: Assigned instructor PROF14 to L39 at slot 12
+2025-10-21 22:23:19,663 DEBUG: Assigned instructor PROF06 to L29 at slot 16
+2025-10-21 22:23:19,669 DEBUG: Assigned instructor PROF18 to R108 at slot 1
+2025-10-21 22:23:19,678 DEBUG: Assigned instructor AP03 to L41 at slot 11
+2025-10-21 22:23:19,687 DEBUG: Assigned instructor PROF07 to R102 at slot 15
+2025-10-21 22:23:19,695 DEBUG: Assigned instructor PROF09 to L5 at slot 1
+2025-10-21 22:23:19,700 DEBUG: Assigned instructor PROF15 to R104 at slot 6
+2025-10-21 22:23:19,708 DEBUG: Assigned instructor PROF17 to R101 at slot 4
+2025-10-21 22:23:19,708 INFO: Balanced greedy search completed: 56/56 instructors scheduled
+2025-10-21 22:23:19,708 INFO: Room usage distribution: {'R104': 1, 'R109': 1, 'R105': 1, 'R103': 1, 'R101': 1, 'R110': 1, 'R112': 1, 'R114': 1, 'R108': 1, 'R113': 1}
+2025-10-21 22:23:19,708 INFO: Day distribution: {'Monday': 12, 'Sunday': 11, 'Tuesday': 11, 'Wednesday': 11, 'Thursday': 11}
+2025-10-21 22:23:19,708 INFO: \u2705 Successfully scheduled 56/56 instructors
+2025-10-23 11:02:28,716 INFO: Enhanced scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:02:28,717 INFO: Mode: FAST (Balanced Greedy)
+2025-10-23 11:02:28,812 INFO: Using BALANCED GREEDY algorithm (fast, good distribution)
+2025-10-23 11:02:28,812 INFO: Starting balanced greedy search for 56 instructors
+2025-10-23 11:02:28,813 DEBUG: Assigned instructor PROF30 to R110 at slot 10
+2025-10-23 11:02:28,813 DEBUG: Assigned instructor PROF27 to R102 at slot 3
+2025-10-23 11:02:28,814 DEBUG: Assigned instructor PROF28 to R103 at slot 6
+2025-10-23 11:02:28,814 DEBUG: Assigned instructor PROF29 to R105 at slot 18
+2025-10-23 11:02:28,815 DEBUG: Assigned instructor PROF31 to R113 at slot 15
+2025-10-23 11:02:28,815 DEBUG: Assigned instructor PROF32 to R106 at slot 3
+2025-10-23 11:02:28,816 DEBUG: Assigned instructor PROF23 to L12 at slot 4
+2025-10-23 11:02:28,816 DEBUG: Assigned instructor PROF24 to L8 at slot 16
+2025-10-23 11:02:28,817 DEBUG: Assigned instructor PROF33 to R112 at slot 9
+2025-10-23 11:02:28,818 DEBUG: Assigned instructor PROF34 to R114 at slot 13
+2025-10-23 11:02:28,819 DEBUG: Assigned instructor PROF35 to R107 at slot 18
+2025-10-23 11:02:28,819 DEBUG: Assigned instructor PROF04 to R109 at slot 2
+2025-10-23 11:02:28,821 DEBUG: Assigned instructor PROF25 to L17 at slot 14
+2025-10-23 11:02:28,823 DEBUG: Assigned instructor PROF03 to L31 at slot 9
+2025-10-23 11:02:28,825 DEBUG: Assigned instructor PROF05 to L23 at slot 5
+2025-10-23 11:02:28,826 DEBUG: Assigned instructor PROF08 to L11 at slot 19
+2025-10-23 11:02:28,828 DEBUG: Assigned instructor PROF26 to L27 at slot 7
+2025-10-23 11:02:28,853 DEBUG: Assigned instructor PROF22 to L41 at slot 11
+2025-10-23 11:02:28,856 DEBUG: Assigned instructor PROF19 to L4 at slot 1
+2025-10-23 11:02:28,858 DEBUG: Assigned instructor PROF20 to L22 at slot 12
+2025-10-23 11:02:28,861 DEBUG: Assigned instructor PROF10 to L40 at slot 0
+2025-10-23 11:02:28,863 DEBUG: Assigned instructor PROF21 to R111 at slot 17
+2025-10-23 11:02:28,867 DEBUG: Assigned instructor PROF00 to L18 at slot 11
+2025-10-23 11:02:28,871 DEBUG: Assigned instructor PROF01 to L42 at slot 7
+2025-10-23 11:02:28,875 DEBUG: Assigned instructor AP13 to L15 at slot 8
+2025-10-23 11:02:28,879 DEBUG: Assigned instructor AP14 to L5 at slot 13
+2025-10-23 11:02:28,884 DEBUG: Assigned instructor AP15 to L20 at slot 0
+2025-10-23 11:02:28,887 DEBUG: Assigned instructor AP19 to L19 at slot 15
+2025-10-23 11:02:28,890 DEBUG: Assigned instructor AP20 to L37 at slot 7
+2025-10-23 11:02:28,893 DEBUG: Assigned instructor AP08 to L28 at slot 16
+2025-10-23 11:02:28,896 DEBUG: Assigned instructor AP12 to L30 at slot 13
+2025-10-23 11:02:28,899 DEBUG: Assigned instructor AP16 to L25 at slot 8
+2025-10-23 11:02:28,903 DEBUG: Assigned instructor AP17 to L10 at slot 4
+2025-10-23 11:02:28,906 DEBUG: Assigned instructor PROF12 to R101 at slot 1
+2025-10-23 11:02:28,909 DEBUG: Assigned instructor PROF13 to R104 at slot 19
+2025-10-23 11:02:28,913 DEBUG: Assigned instructor AP02 to L21 at slot 5
+2025-10-23 11:02:28,917 DEBUG: Assigned instructor AP09 to L32 at slot 1
+2025-10-23 11:02:28,922 DEBUG: Assigned instructor AP18 to L34 at slot 16
+2025-10-23 11:02:28,926 DEBUG: Assigned instructor PROF02 to L36 at slot 10
+2025-10-23 11:02:28,930 DEBUG: Assigned instructor AP05 to L14 at slot 14
+2025-10-23 11:02:28,935 DEBUG: Assigned instructor AP07 to L1 at slot 3
+2025-10-23 11:02:28,939 DEBUG: Assigned instructor AP10 to L13 at slot 9
+2025-10-23 11:02:28,943 DEBUG: Assigned instructor AP11 to L16 at slot 7
+2025-10-23 11:02:28,947 DEBUG: Assigned instructor AP06 to L26 at slot 17
+2025-10-23 11:02:28,953 DEBUG: Assigned instructor PROF11 to L38 at slot 12
+2025-10-23 11:02:28,958 DEBUG: Assigned instructor PROF16 to L35 at slot 15
+2025-10-23 11:02:28,963 DEBUG: Assigned instructor AP01 to L6 at slot 8
+2025-10-23 11:02:28,968 DEBUG: Assigned instructor AP04 to L39 at slot 16
+2025-10-23 11:02:28,973 DEBUG: Assigned instructor PROF14 to L29 at slot 3
+2025-10-23 11:02:28,978 DEBUG: Assigned instructor PROF06 to L7 at slot 6
+2025-10-23 11:02:28,984 DEBUG: Assigned instructor PROF18 to L24 at slot 3
+2025-10-23 11:02:28,989 DEBUG: Assigned instructor AP03 to L33 at slot 4
+2025-10-23 11:02:28,994 DEBUG: Assigned instructor PROF07 to L9 at slot 17
+2025-10-23 11:02:29,001 DEBUG: Assigned instructor PROF09 to L3 at slot 13
+2025-10-23 11:02:29,006 DEBUG: Assigned instructor PROF15 to L2 at slot 11
+2025-10-23 11:02:29,015 DEBUG: Assigned instructor PROF17 to R108 at slot 5
+2025-10-23 11:02:29,015 INFO: Balanced greedy search completed: 56/56 instructors scheduled
+2025-10-23 11:02:29,015 INFO: Room usage distribution: {'R105': 1, 'R108': 1, 'R106': 1, 'R113': 1, 'R110': 1, 'R104': 1, 'R114': 1, 'R103': 1, 'R111': 1, 'R107': 1}
+2025-10-23 11:02:29,015 INFO: Day distribution: {'Sunday': 11, 'Tuesday': 11, 'Wednesday': 11, 'Monday': 12, 'Thursday': 11}
+2025-10-23 11:02:29,015 INFO: \u2705 Successfully scheduled 56/56 instructors
+2025-10-23 11:09:37,775 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:09:37,853 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:09:37,886 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:09:37,889 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:09:37,889 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:13:07,666 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:13:07,752 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:13:07,782 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:13:07,786 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:13:07,786 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:16:07,045 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:16:07,129 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:16:07,160 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:16:07,163 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:16:07,163 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:24:29,483 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:24:29,573 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:24:29,607 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:24:29,609 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:24:29,610 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:27:58,691 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:27:58,784 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:27:58,814 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:27:58,817 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:27:58,817 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:35:47,569 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:35:47,658 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:35:47,689 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:35:47,692 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:35:47,692 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:40:51,338 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:40:51,409 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:40:51,443 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:40:51,446 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:40:51,446 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:44:41,276 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:44:41,362 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:44:41,392 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:44:41,395 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:44:41,395 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 11:57:48,539 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 11:57:48,628 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 11:57:48,660 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 11:57:48,662 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 11:57:48,662 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-23 12:32:29,383 INFO: Fixed scheduler starting: 56 instructors, 56 rooms, 20 timeslots
+2025-10-23 12:32:29,518 INFO: Greedy search: 225 (instructor, course) pairs to schedule
+2025-10-23 12:32:29,563 INFO: Greedy search completed: 225 classes scheduled from 225 needed
+2025-10-23 12:32:29,568 INFO: \u2705 Successfully scheduled 225 classes
+2025-10-23 12:32:29,568 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF00': 3, 'PROF22': 2, 'PROF16': 5}
+2025-10-29 13:46:05,325 INFO: Fixed scheduler starting: 55 instructors, 56 rooms, 20 timeslots
+2025-10-29 13:46:05,434 INFO: Greedy search: 222 (instructor, course) pairs to schedule
+2025-10-29 13:46:05,470 INFO: Greedy search completed: 222 classes scheduled from 222 needed
+2025-10-29 13:46:05,470 INFO: \u2705 Successfully scheduled 222 classes
+2025-10-29 13:46:05,470 INFO: Classes per instructor: {'PROF03': 3, 'PROF04': 2, 'PROF05': 3, 'PROF27': 2, 'PROF28': 2, 'PROF29': 2, 'PROF30': 1, 'PROF31': 2, 'PROF32': 2, 'PROF33': 3, 'PROF34': 3, 'PROF35': 3, 'PROF01': 4, 'PROF02': 5, 'PROF06': 6, 'PROF07': 7, 'PROF08': 2, 'PROF09': 7, 'PROF10': 3, 'PROF11': 6, 'PROF12': 4, 'PROF13': 4, 'PROF14': 6, 'PROF15': 7, 'PROF17': 9, 'PROF18': 7, 'PROF19': 3, 'PROF20': 3, 'PROF21': 3, 'PROF23': 1, 'PROF24': 1, 'PROF25': 2, 'PROF26': 2, 'AP01': 6, 'AP02': 5, 'AP03': 7, 'AP04': 6, 'AP05': 5, 'AP06': 5, 'AP07': 5, 'AP08': 4, 'AP09': 5, 'AP10': 5, 'AP11': 5, 'AP12': 4, 'AP13': 4, 'AP14': 4, 'AP15': 4, 'AP16': 4, 'AP17': 4, 'AP18': 5, 'AP19': 4, 'AP20': 4, 'PROF22': 2, 'PROF16': 5}

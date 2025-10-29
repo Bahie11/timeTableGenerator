@@ -1,158 +1,263 @@
 """
-Constraint Satisfaction Problem (CSP) solver for timetable generation.
+CSP solver adjusted for the specific data structure from Excel files.
 """
-from typing import Dict, List, Optional
+import time
+import logging
+import copy
+import os
+from threading import Event
+from typing import Dict, List, Optional, Tuple, Callable
 
-try:
-    from .models import Instructor, TimeSlot, Room, Assignment
-except ImportError:
-    from models import Instructor, TimeSlot, Room, Assignment
+from models import Instructor, TimeSlot, Room, Course, Assignment
 
+_log_path = os.path.join(os.path.dirname(__file__), "timetable.log")
+logging.basicConfig(filename=_log_path, level=logging.DEBUG, format="%(asctime)s %(levelname)s: %(message)s")
 
-def build_domains(
-    instructors: List[Instructor], timeslots: List[TimeSlot], rooms: List[Room]
-) -> Dict[str, List[Assignment]]:
-    """Build domains for CSP variables (instructors) with their possible assignments."""
-    # Domain: all (timeslot, room, course) options that respect instructor availability
-    lecture_rooms = [r for r in rooms if r.room_type.lower() == "lecture"]
-    domains: Dict[str, List[Assignment]] = {}
-    
-    # Group timeslots by day for better distribution
-    timeslots_by_day = {}
-    for idx, ts in enumerate(timeslots):
-        day = ts.day.lower()
-        if day not in timeslots_by_day:
-            timeslots_by_day[day] = []
-        timeslots_by_day[day].append(idx)
-    
-    for instructor in instructors:
-        allowed_slots: List[int] = []
-        for idx, ts in enumerate(timeslots):
-            if instructor.unavailable_day and ts.day.lower() == instructor.unavailable_day.lower():
-                continue
-            allowed_slots.append(idx)
-
-        # Choose at least a placeholder course if none specified
-        courses = instructor.qualified_courses or ["GEN101"]
-
-        options: List[Assignment] = []
-        
-        # Ensure we have options from different days
-        for day, day_slots in timeslots_by_day.items():
-            # Filter day slots by instructor availability
-            available_day_slots = [s for s in day_slots if s in allowed_slots]
-            if available_day_slots:
-                # Take a few slots from each day to ensure distribution
-                for slot_index in available_day_slots[:3]:  # Limit to 3 slots per day
-                    for room in lecture_rooms:
-                        for course_code in courses:
-                            options.append((slot_index, room.room_id, course_code))
-        
-        # If no day-specific options, fall back to all available slots
-        if not options:
-            for slot_index in allowed_slots:
-                for room in lecture_rooms:
-                    for course_code in courses:
-                        options.append((slot_index, room.room_id, course_code))
-        
-        domains[instructor.instructor_id] = options
-    return domains
-
-
-def is_consistent(
-    partial_assignment: Dict[str, Assignment],
-    new_instructor_id: str,
-    new_value: Assignment,
-) -> bool:
-    """Check if a new assignment is consistent with existing assignments."""
-    # Hard constraints:
-    # 1) No professor teaches more than one class at the same time (trivial here: one per instructor)
-    # 2) No room hosts more than one class at the same time
-    # 3) Instructor availability respected (enforced in domain construction)
-    (new_slot, new_room, new_course) = new_value
-    
-    for other_instructor_id, (slot, room, course) in partial_assignment.items():
-        # Room-time conflict: same room at same time
-        if slot == new_slot and room == new_room:
-            return False
-        # Same course conflict: same course at same time (different instructors)
-        if slot == new_slot and course == new_course:
-            return False
+def _room_type_matches_course(room_type: Optional[str], course_type: Optional[str]) -> bool:
+    if not room_type or not course_type:
+        return True
+    rt = room_type.lower()
+    ct = course_type.lower()
+    if "lab" in ct:
+        return ("lab" in rt) or ("computer" in rt)
+    if "lecture" in ct:
+        return ("classroom" in rt) or ("lecture" in rt)
     return True
 
+def build_domains(instructors: List[Instructor], timeslots: List[TimeSlot], rooms: List[Room], courses: Optional[List[Course]] = None) -> Dict[str, List[Assignment]]:
+    domains: Dict[str, List[Assignment]] = {}
+    # build course lookup if provided (some code expects course metadata)
+    course_lookup = {c.course_id: c for c in (courses or [])}
+    for inst in instructors:
+        dom: List[Assignment] = []
+        # parse preferred like "Not on Tuesday"
+        unavailable = None
+        if inst.unavailable_day:
+            t = inst.unavailable_day.strip()
+            if t.lower().startswith("not on"):
+                unavailable = t[6:].strip().lower()
+            else:
+                unavailable = t.lower()
+        # qualified courses list is in inst.qualified_courses (list of codes)
+        quals = [c.strip() for c in (inst.qualified_courses or []) if c and c.strip()]
+        if not quals:
+            # no qualified courses -> leave domain empty
+            domains[inst.instructor_id] = dom
+            continue
+        for ti, ts in enumerate(timeslots):
+            if unavailable and ((ts.day or "").strip().lower() == unavailable):
+                continue
+            for room in rooms:
+                for course_code in quals:
+                    # if we have course metadata check room type compatibility
+                    course_meta = course_lookup.get(course_code)
+                    course_type = course_meta.course_type if course_meta else None
+                    if not _room_type_matches_course(room.room_type, course_type):
+                        continue
+                    dom.append((ti, room.room_id, course_code))
+        domains[inst.instructor_id] = dom
+    return domains
 
-def select_unassigned_variable(
-    variables: List[str],
-    assignment: Dict[str, Assignment],
+def greedy_search(
     domains: Dict[str, List[Assignment]],
-) -> str:
-    """Select the next variable to assign using Minimum Remaining Values heuristic."""
-    # Minimum Remaining Values heuristic to speed up backtracking
-    unassigned = [v for v in variables if v not in assignment]
-    return min(unassigned, key=lambda v: len(domains[v]))
-
-
-def order_domain_values(var: str, domains: Dict[str, List[Assignment]]) -> List[Assignment]:
-    """Order domain values for a variable to improve search efficiency."""
-    # Order by day diversity to spread courses across all days
-    assignments = domains[var]
+    instructors_by_id: Dict[str, Instructor],
+    timeslots: List[TimeSlot],
+    stop_event: Optional[Event] = None,
+    progress_callback: Optional[Callable[[int], None]] = None
+) -> Optional[Dict[str, Assignment]]:
+    """Fast greedy algorithm - assigns instructors quickly, accepts good-enough solutions"""
+    import random
     
-    # Group by day to ensure diversity
-    day_groups = {}
-    for assignment in assignments:
-        slot_index, room_id, course = assignment
-        # We need to get the day from the timeslot, but we don't have access to timeslots here
-        # So we'll use a simple round-robin approach
-        day_groups.setdefault(slot_index % 5, []).append(assignment)
+    if stop_event is None:
+        stop_event = Event()
     
-    # Interleave assignments from different days
-    result = []
-    max_len = max(len(group) for group in day_groups.values()) if day_groups else 0
+    assignment = {}
+    used_slots = set()  # (time_idx, room_id) pairs already used
+    nodes = 0
     
-    for i in range(max_len):
-        for day_group in day_groups.values():
-            if i < len(day_group):
-                result.append(day_group[i])
+    # Sort instructors by domain size (smallest first - easier to place)
+    instructors = sorted(domains.keys(), key=lambda x: len(domains[x]))
     
-    return result
+    for instructor_id in instructors:
+        if stop_event.is_set():
+            return None
+            
+        nodes += 1
+        if progress_callback and nodes % 10 == 0:
+            try:
+                progress_callback(nodes)
+            except Exception:
+                pass
+        
+        # Try to find a valid assignment for this instructor
+        available = domains[instructor_id]
+        random.shuffle(available)  # Add some randomness for variety
+        
+        found = False
+        for time_idx, room_id, course in available:
+            slot_key = (time_idx, room_id)
+            
+            # Check if this slot is already used
+            if slot_key not in used_slots:
+                # Assign it!
+                assignment[instructor_id] = (time_idx, room_id, course)
+                used_slots.add(slot_key)
+                found = True
+                break
+        
+        if not found:
+            # Can't place this instructor - that's okay, just skip them
+            logging.warning(f"Could not schedule instructor {instructor_id}")
+    
+    logging.info(f"Greedy search completed: {len(assignment)}/{len(domains)} instructors scheduled")
+    if progress_callback:
+        try:
+            progress_callback(nodes)
+        except Exception:
+            pass
+    
+    return assignment if assignment else None
 
+def backtracking_search(
+    domains: Dict[str, List[Assignment]],
+    instructors_by_id: Dict[str, Instructor],
+    timeslots: List[TimeSlot],
+    max_nodes: int = 200_000,
+    timeout: Optional[float] = 30.0,
+    stop_event: Optional[Event] = None,
+    progress_callback: Optional[Callable[[int], None]] = None
+) -> Optional[Dict[str, Assignment]]:
+    start_time = time.time()
+    nodes = 0
+    if stop_event is None:
+        stop_event = Event()
 
-def backtracking_search(domains: Dict[str, List[Assignment]]) -> Optional[Dict[str, Assignment]]:
-    """Solve the CSP using backtracking search."""
-    variables = list(domains.keys())
+    def consistent(assignment: Dict[str, Assignment], var: str, value: Assignment) -> bool:
+        time_idx, room_id, course = value
+        for other_var, other_value in assignment.items():
+            ot, oroom, ocourse = other_value
+            if ot == time_idx and oroom == room_id:
+                return False
+            if var == other_var and ot == time_idx:
+                return False
+        return True
 
-    def backtrack(current: Dict[str, Assignment]) -> Optional[Dict[str, Assignment]]:
-        if len(current) == len(variables):
-            return current
+    def select_mrv(curr_domains, assigned):
+        unassigned = [v for v in curr_domains if v not in assigned]
+        return min(unassigned, key=lambda v: len(curr_domains[v]))
 
-        var = select_unassigned_variable(variables, current, domains)
-        for value in order_domain_values(var, domains):
-            if is_consistent(current, var, value):
-                current[var] = value
-                result = backtrack(current)
-                if result is not None:
-                    return result
-                del current[var]
+    def order_values(var, curr_domains):
+        def conflicts_count(val):
+            t_idx, r_id, c = val
+            cnt = 0
+            for other, dom in curr_domains.items():
+                if other == var: continue
+                for v2 in dom:
+                    if v2[0] == t_idx and v2[1] == r_id:
+                        cnt += 1
+            return cnt
+        return sorted(curr_domains[var], key=conflicts_count)
+
+    def forward_check(domains_local, var, val):
+        new = copy.deepcopy(domains_local)
+        t_idx, r_id, course_code = val
+        new[var] = [val]
+        for other in list(new.keys()):
+            if other == var:
+                continue
+            reduced = []
+            for v in new[other]:
+                ot, oroom, ocourse = v
+                if ot == t_idx and oroom == r_id:
+                    continue
+                reduced.append(v)
+            if not reduced:
+                return None
+            new[other] = reduced
+        return new
+
+    def recurse(curr_domains, assignment):
+        nonlocal nodes
+        if stop_event.is_set():
+            return None
+        nodes += 1
+        if progress_callback and nodes % 500 == 0:
+            try:
+                progress_callback(nodes)
+            except Exception:
+                pass
+        if timeout and (time.time() - start_time) > timeout:
+            logging.warning("Search timed out after %.2fs nodes=%d", time.time() - start_time, nodes)
+            return None
+        if nodes > max_nodes:
+            logging.warning("Node limit reached nodes=%d", nodes)
+            return None
+        if len(assignment) == len(curr_domains):
+            logging.info("Solution found nodes=%d time=%.2fs", nodes, time.time() - start_time)
+            return assignment.copy()
+
+        var = select_mrv(curr_domains, assignment)
+        for value in order_values(var, curr_domains):
+            if stop_event.is_set():
+                return None
+            if not consistent(assignment, var, value):
+                continue
+            reduced = forward_check(curr_domains, var, value)
+            if reduced is None:
+                continue
+            assignment[var] = value
+            res = recurse(reduced, assignment)
+            if res:
+                return res
+            del assignment[var]
         return None
 
-    return backtrack({})
-
+    logging.info("Starting backtracking_search (max_nodes=%d timeout=%s)", max_nodes, str(timeout))
+    solution = recurse(domains, {})
+    logging.info("Search finished nodes=%d elapsed=%.2fs result=%s", nodes, time.time() - start_time, "FOUND" if solution else "NONE")
+    if progress_callback:
+        try:
+            progress_callback(nodes)
+        except Exception:
+            pass
+    return solution
 
 def generate_schedule_from_memory(
-    instructors: List[Instructor], rooms: List[Room], timeslots: List[TimeSlot]
-) -> tuple[Dict[str, Assignment], Dict[str, Instructor], List[TimeSlot]]:
-    """Generate a schedule from in-memory data."""
-    if not instructors:
-        raise ValueError("No instructors available")
-    if not rooms:
-        raise ValueError("No rooms available")
-    if not timeslots:
-        raise ValueError("No timeslots available")
-
-    domains = build_domains(instructors, timeslots, rooms)
-    solution = backtracking_search(domains)
-    if solution is None:
-        raise RuntimeError("No feasible schedule found with current constraints.")
-
-    instructors_by_id: Dict[str, Instructor] = {i.instructor_id: i for i in instructors}
-    return solution, instructors_by_id, timeslots
+    instructors: List[Instructor],
+    rooms: List[Room],
+    timeslots: List[TimeSlot],
+    courses: Optional[List[Course]] = None,
+    stop_event: Optional[Event] = None,
+    progress_callback: Optional[Callable[[int], None]] = None,
+    use_fast_mode: bool = True
+) -> Tuple[Dict[str, Assignment], Dict[str, Instructor], List[TimeSlot]]:
+    """
+    Generate timetable schedule.
+    
+    Args:
+        use_fast_mode: If True, uses fast greedy algorithm (default).
+                      If False, uses slower but more thorough backtracking.
+    """
+    logging.info("generate_schedule_from_memory start: instructors=%d rooms=%d timeslots=%d (fast_mode=%s)",
+                 len(instructors), len(rooms), len(timeslots), use_fast_mode)
+    domains = build_domains(instructors, timeslots, rooms, courses=courses)
+    sizes = {v: len(dom) for v, dom in domains.items()}
+    empty = [v for v, dom in domains.items() if not dom]
+    
+    # Just warn about empty domains, don't stop
+    if empty:
+        logging.warning("Instructors with no available slots: %s", empty)
+        logging.warning("These %d instructor(s) will be skipped in the schedule", len(empty))
+    
+    instructors_by_id = {inst.instructor_id: inst for inst in instructors}
+    
+    if use_fast_mode:
+        # Use fast greedy algorithm - completes in seconds
+        logging.info("Using FAST GREEDY mode for quick scheduling")
+        result = greedy_search(domains, instructors_by_id, timeslots, stop_event=stop_event, progress_callback=progress_callback)
+    else:
+        # Use slow but thorough backtracking - may take minutes
+        logging.info("Using THOROUGH BACKTRACKING mode (slower)")
+        result = backtracking_search(domains, instructors_by_id, timeslots, stop_event=stop_event, progress_callback=progress_callback)
+    
+    return result or {}, instructors_by_id, timeslots

@@ -1,15 +1,16 @@
 """
 Data models for the timetable generator.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
+import datetime
 
 
 @dataclass(frozen=True)
 class TimeSlot:
     day: str
-    start_time: str
-    end_time: str
+    start_time: Optional[datetime.time] = None
+    end_time: Optional[datetime.time] = None
 
     def label(self) -> str:
         return f"{self.day} {self.start_time}-{self.end_time}"
@@ -18,26 +19,25 @@ class TimeSlot:
 @dataclass(frozen=True)
 class Room:
     room_id: str
-    room_type: str  # "Lecture" or "Lab"
-    capacity: int
+    room_type: Optional[str] = None
+    capacity: Optional[int] = None
 
 
 @dataclass
 class Instructor:
     instructor_id: str
-    name: str
-    role: str
-    unavailable_day: Optional[str]  # e.g. "Monday" from "Not on Monday"
-    qualified_courses: List[str]
+    name: Optional[str] = None
+    unavailable_day: Optional[str] = None  # e.g. "Tuesday" or "Not on Tuesday"
+    qualified_courses: List[str] = field(default_factory=list)
 
 
 @dataclass
 class Course:
     course_id: str
-    course_name: str
-    course_type: str  # Lecture or Lab
+    course_name: Optional[str] = None
+    course_type: Optional[str] = None
     credits: Optional[int] = None
 
 
-# Type alias for assignments
-Assignment = tuple[int, str, str]  # (timeslot_index, room_id, course_code)
+# Type alias for assignments (timeslot index, room id, course id)
+Assignment = tuple[int, str, str]

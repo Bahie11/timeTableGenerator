@@ -2,191 +2,198 @@
 Data loading utilities for CSV and Excel files.
 """
 import csv
+import os
+from pathlib import Path
 from typing import List, Optional
+import datetime
 
-try:
-    from .models import TimeSlot, Room, Instructor, Course
-except ImportError:
-    from models import TimeSlot, Room, Instructor, Course
+from models import TimeSlot, Room, Instructor, Course
+
+
+def _ensure_pandas():
+    try:
+        import pandas as pd  # type: ignore
+        import openpyxl  # Verify openpyxl is also available
+        return pd
+    except ImportError as e:
+        # More specific error message showing what's actually missing
+        raise ImportError(f"Excel import requires pandas and openpyxl.\n\nError: {str(e)}\n\nInstall via: pip install pandas openpyxl") from e
+    except Exception as e:
+        # Unexpected error during import
+        raise ImportError(f"Failed to import pandas/openpyxl: {str(e)}\n\nTry reinstalling: pip install --force-reinstall pandas openpyxl") from e
+
+
+def _resolve_path(path: str) -> str:
+    if not path:
+        raise FileNotFoundError("No path provided")
+    p = Path(os.path.expanduser(str(path))).resolve()
+    if not p.exists():
+        raise FileNotFoundError(f"Input file not found: {p}")
+    return str(p)
+
+
+def _read_excel_sheet(path: str, sheet_name: Optional[str] = None):
+    pd = _ensure_pandas()
+    
+    # Determine engine based on file extension
+    file_ext = Path(path).suffix.lower()
+    engine = None
+    
+    if file_ext == '.xlsx':
+        engine = 'openpyxl'
+    elif file_ext == '.xls':
+        # For older Excel files, try xlrd or let pandas choose
+        try:
+            import xlrd
+            engine = 'xlrd'
+        except ImportError:
+            # If xlrd is not available, let pandas auto-detect
+            engine = None
+    
+    try:
+        if engine:
+            df = pd.read_excel(path, sheet_name=sheet_name, engine=engine)
+        else:
+            df = pd.read_excel(path, sheet_name=sheet_name)
+    except Exception as e:
+        # Provide helpful error message
+        if "zip file" in str(e).lower():
+            raise ValueError(f"Cannot read Excel file: '{Path(path).name}' appears to be in an unsupported format. "
+                           f"Please save it as .xlsx (Excel 2007+) format and try again.") from e
+        raise
+    
+    if isinstance(df, dict):
+        if sheet_name and sheet_name in df:
+            return df[sheet_name]
+        # deterministic first sheet
+        first_key = next(iter(df))
+        return df[first_key]
+    return df
 
 
 def load_timeslots(csv_path: str) -> List[TimeSlot]:
+    resolved = _resolve_path(csv_path)
     timeslots: List[TimeSlot] = []
-    with open(csv_path, newline="", encoding="utf-8") as f:
+    with open(resolved, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            timeslots.append(
-                TimeSlot(day=row["Day"].strip(), start_time=row["StartTime"].strip(), end_time=row["EndTime"].strip())
-            )
+            st = row.get("StartTime")
+            et = row.get("EndTime")
+            # try parse times if strings like "09:00"
+            def _parse_time(v):
+                if v is None or v == "":
+                    return None
+                if isinstance(v, datetime.time):
+                    return v
+                try:
+                    return datetime.datetime.strptime(str(v).strip(), "%H:%M").time()
+                except Exception:
+                    try:
+                        return datetime.datetime.strptime(str(v).strip(), "%I:%M %p").time()
+                    except Exception:
+                        return None
+            timeslots.append(TimeSlot(day=(row.get("Day") or "").strip(), start_time=_parse_time(st), end_time=_parse_time(et)))
     return timeslots
 
 
 def load_rooms(csv_path: str) -> List[Room]:
+    resolved = _resolve_path(csv_path)
     rooms: List[Room] = []
-    with open(csv_path, newline="", encoding="utf-8") as f:
+    with open(resolved, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            capacity_value = 0
+            cap = None
             try:
-                capacity_value = int(str(row["Capacity"]).strip())
+                cap = int(str(row.get("Capacity") or 0).strip())
             except Exception:
-                capacity_value = 0
-            rooms.append(
-                Room(
-                    room_id=row["RoomID"].strip(),
-                    room_type=row["Type"].strip(),
-                    capacity=capacity_value,
-                )
-            )
+                cap = None
+            rooms.append(Room(room_id=str(row.get("RoomID") or "").strip(), room_type=str(row.get("Type") or "").strip(), capacity=cap))
     return rooms
 
 
 def load_instructors(csv_path: str) -> List[Instructor]:
+    resolved = _resolve_path(csv_path)
     instructors: List[Instructor] = []
-    with open(csv_path, newline="", encoding="utf-8") as f:
+    with open(resolved, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            instructors.append(
-                Instructor(
-                    instructor_id=row["InstructorID"].strip(),
-                    name=row["Name"].strip(),
-                    role=row["Role"].strip(),
-                    unavailable_day=parse_unavailable_day(row.get("PreferredSlots", "")),
-                    qualified_courses=parse_qualified_courses(row.get("QualifiedCourses", "")),
-                )
-            )
+            pref = (row.get("PreferredSlots") or "").strip()
+            qc = (row.get("QualifiedCourses") or "").strip()
+            # QualifiedCourses may be single code or semicolon/comma separated
+            qlist = [c.strip() for c in (qc.split(";") if ";" in qc else qc.split(",") ) if c.strip()] if qc else []
+            instructors.append(Instructor(instructor_id=str(row.get("InstructorID") or "").strip(), name=str(row.get("Name") or "").strip(), unavailable_day=pref, qualified_courses=qlist))
     return instructors
 
 
 def load_courses(csv_path: str) -> List[Course]:
+    resolved = _resolve_path(csv_path)
     courses: List[Course] = []
-    with open(csv_path, newline="", encoding="utf-8") as f:
+    with open(resolved, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            credits: Optional[int] = None
-            if row.get("Credits"):
-                try:
-                    credits = int(str(row["Credits"]).strip())
-                except Exception:
-                    credits = None
-            courses.append(
-                Course(
-                    course_id=row.get("CourseID", "").strip(),
-                    course_name=row.get("CourseName", "").strip(),
-                    course_type=(row.get("Type", "Lecture") or "Lecture").strip(),
-                    credits=credits,
-                )
-            )
+            credits = None
+            try:
+                if row.get("Credits") not in (None, ""):
+                    credits = int(str(row.get("Credits")).strip())
+            except Exception:
+                credits = None
+            courses.append(Course(course_id=str(row.get("CourseID") or "").strip(), course_name=str(row.get("CourseName") or "").strip(), course_type=str(row.get("Type") or "").strip(), credits=credits))
     return courses
 
 
-def parse_unavailable_day(preferred_slots_value: str) -> Optional[str]:
-    value = (preferred_slots_value or "").strip()
-    # Expected like: "Not on Monday"
-    if value.lower().startswith("not on "):
-        return value.split(" ", 2)[-1].strip()
-    return None
-
-
-def parse_qualified_courses(csv_value: str) -> List[str]:
-    if not csv_value:
-        return []
-    # Split by comma and strip whitespace
-    parts = [p.strip() for p in str(csv_value).split(",")]
-    return [p for p in parts if p]
-
-
-# ---------- Optional Excel import (requires pandas + openpyxl) ----------
-def _ensure_pandas():
-    try:
-        import pandas as _pd  # type: ignore
-        return _pd
-    except Exception as exc:
-        raise ImportError(
-            "Excel import requires pandas (and openpyxl). Install via: pip install pandas openpyxl"
-        ) from exc
-
-
-def load_instructors_excel(path: str, sheet_name: Optional[str] = None) -> List[Instructor]:
-    pd = _ensure_pandas()
-    df = pd.read_excel(path, sheet_name=sheet_name)
-    # Normalize columns
-    cols = {c.lower().strip(): c for c in df.columns}
-    def col(name: str) -> str:
-        return cols.get(name.lower(), name)
-    result: List[Instructor] = []
+def load_timeslots_excel(path: str, sheet_name: Optional[str] = None) -> List[TimeSlot]:
+    df = _read_excel_sheet(_resolve_path(path), sheet_name)
+    res: List[TimeSlot] = []
     for _, row in df.iterrows():
-        pref = str(row.get(col("PreferredSlots"), "") or "")
-        result.append(
-            Instructor(
-                instructor_id=str(row.get(col("InstructorID"), "")).strip(),
-                name=str(row.get(col("Name"), "")).strip(),
-                role=str(row.get(col("Role"), "Professor") or "Professor").strip(),
-                unavailable_day=parse_unavailable_day(pref),
-                qualified_courses=parse_qualified_courses(str(row.get(col("QualifiedCourses"), "") or "")),
-            )
-        )
-    return [i for i in result if i.instructor_id]
+        st = row.get("StartTime")
+        et = row.get("EndTime")
+        if isinstance(st, str):
+            try:
+                st = datetime.datetime.strptime(st.strip(), "%H:%M").time()
+            except Exception:
+                st = None
+        if isinstance(et, str):
+            try:
+                et = datetime.datetime.strptime(et.strip(), "%H:%M").time()
+            except Exception:
+                et = None
+        res.append(TimeSlot(day=str(row.get("Day") or "").strip(), start_time=st, end_time=et))
+    return res
 
 
 def load_rooms_excel(path: str, sheet_name: Optional[str] = None) -> List[Room]:
-    pd = _ensure_pandas()
-    df = pd.read_excel(path, sheet_name=sheet_name)
-    cols = {c.lower().strip(): c for c in df.columns}
-    def col(name: str) -> str:
-        return cols.get(name.lower(), name)
-    result: List[Room] = []
+    df = _read_excel_sheet(_resolve_path(path), sheet_name)
+    res: List[Room] = []
     for _, row in df.iterrows():
-        cap = row.get(col("Capacity"))
+        cap = None
         try:
-            cap_int = int(cap) if not (cap is None or (isinstance(cap, float) and pd.isna(cap))) else 0
+            cap = int(row.get("Capacity")) if not (row.get("Capacity") is None) else None
         except Exception:
-            cap_int = 0
-        result.append(
-            Room(
-                room_id=str(row.get(col("RoomID"), "")).strip(),
-                room_type=str(row.get(col("Type"), "Lecture") or "Lecture").strip(),
-                capacity=cap_int,
-            )
-        )
-    return [r for r in result if r.room_id]
+            cap = None
+        res.append(Room(room_id=str(row.get("RoomID") or "").strip(), room_type=str(row.get("Type") or "").strip(), capacity=cap))
+    return res
+
+
+def load_instructors_excel(path: str, sheet_name: Optional[str] = None) -> List[Instructor]:
+    df = _read_excel_sheet(_resolve_path(path), sheet_name)
+    res: List[Instructor] = []
+    for _, row in df.iterrows():
+        pref = (row.get("PreferredSlots") or "").strip()
+        qc = (row.get("QualifiedCourses") or "").strip()
+        qlist = [c.strip() for c in (qc.split(";") if ";" in qc else qc.split(",") ) if c.strip()] if qc else []
+        res.append(Instructor(instructor_id=str(row.get("InstructorID") or "").strip(), name=str(row.get("Name") or "").strip(), unavailable_day=pref, qualified_courses=qlist))
+    return res
 
 
 def load_courses_excel(path: str, sheet_name: Optional[str] = None) -> List[Course]:
-    pd = _ensure_pandas()
-    df = pd.read_excel(path, sheet_name=sheet_name)
-    cols = {c.lower().strip(): c for c in df.columns}
-    def col(name: str) -> str:
-        return cols.get(name.lower(), name)
-    result: List[Course] = []
+    df = _read_excel_sheet(_resolve_path(path), sheet_name)
+    res: List[Course] = []
     for _, row in df.iterrows():
-        credits = row.get(col("Credits"))
+        credits = None
         try:
-            credits_int: Optional[int] = int(credits) if str(credits).strip() != "" else None
+            if row.get("Credits") not in (None, ""):
+                credits = int(row.get("Credits"))
         except Exception:
-            credits_int = None
-        result.append(
-            Course(
-                course_id=str(row.get(col("CourseID"), "")).strip(),
-                course_name=str(row.get(col("CourseName"), "")).strip(),
-                course_type=str(row.get(col("Type"), "Lecture") or "Lecture").strip(),
-                credits=credits_int,
-            )
-        )
-    return [c for c in result if c.course_id]
-
-
-def load_timeslots_excel(path: str, sheet_name: Optional[str] = None) -> List[TimeSlot]:
-    pd = _ensure_pandas()
-    df = pd.read_excel(path, sheet_name=sheet_name)
-    cols = {c.lower().strip(): c for c in df.columns}
-    def col(name: str) -> str:
-        return cols.get(name.lower(), name)
-    timeslots: List[TimeSlot] = []
-    for _, row in df.iterrows():
-        day = str(row.get(col("Day"), "")).strip()
-        start_time = str(row.get(col("StartTime"), "")).strip()
-        end_time = str(row.get(col("EndTime"), "")).strip()
-        if day and start_time and end_time:
-            timeslots.append(TimeSlot(day=day, start_time=start_time, end_time=end_time))
-    return timeslots
+            credits = None
+        res.append(Course(course_id=str(row.get("CourseID") or "").strip(), course_name=str(row.get("CourseName") or "").strip(), course_type=str(row.get("Type") or "").strip(), credits=credits))
+    return res

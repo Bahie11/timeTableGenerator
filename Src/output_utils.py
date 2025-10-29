@@ -4,47 +4,36 @@ Output utilities for CSV, console, and HTML export.
 import csv
 import time
 from typing import Dict, List, Tuple
+import logging
 
-try:
-    from .models import Assignment, Instructor, TimeSlot
-except ImportError:
-    from models import Assignment, Instructor, TimeSlot
-
+from models import Assignment, Instructor, TimeSlot
 
 def get_proper_sort_key(assignment_tuple, timeslots: List[TimeSlot]):
-    """Create a proper sort key for schedule items to order by weekday and time"""
-    instructor_id, (slot_index, room_id, course) = assignment_tuple
-    ts = timeslots[slot_index]
-    
-    # Define weekday order for proper sorting
-    weekday_order = {
-        'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 
-        'Thursday': 4, 'Friday': 5, 'Saturday': 6
-    }
-    
-    day_order = weekday_order.get(ts.day, 999)  # Unknown days go last
-    
-    # Parse time for proper sorting (handle AM/PM and 24-hour formats)
-    time_str = ts.start_time
     try:
-        # Convert time to sortable format
-        if 'AM' in time_str or 'PM' in time_str:
-            # Handle 12-hour format
-            time_part = time_str.replace(' AM', '').replace(' PM', '')
-            hour, minute = map(int, time_part.split(':'))
-            if 'PM' in time_str and hour != 12:
-                hour += 12
-            elif 'AM' in time_str and hour == 12:
-                hour = 0
-            time_sort = hour * 60 + minute
+        instructor_id, (slot_index, room_id, course) = assignment_tuple
+    except Exception:
+        return (999, 99999, "", "")
+    weekday_order = {
+        'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,
+        'thursday': 4, 'friday': 5, 'saturday': 6
+    }
+    try:
+        ts = timeslots[slot_index]
+        day = (getattr(ts, "day", "") or "").strip().lower()
+        st = getattr(ts, "start_time", None)
+        if hasattr(st, "hour"):
+            time_sort = st.hour * 60 + getattr(st, "minute", 0)
         else:
-            # Handle 24-hour format
-            hour, minute = map(int, time_str.split(':'))
-            time_sort = hour * 60 + minute
-    except:
-        time_sort = 0
-    
-    return (day_order, time_sort, course, instructor_id)
+            try:
+                parts = str(st or "").split(":")
+                time_sort = int(parts[0]) * 60 + (int(parts[1]) if len(parts) > 1 else 0)
+            except Exception:
+                time_sort = 0
+    except Exception:
+        logging.exception("Failed to build sort key")
+        return (999, 99999, course or "", instructor_id or "")
+    day_order = weekday_order.get(day, 999)
+    return (day_order, time_sort, course or "", instructor_id or "")
 
 
 def write_schedule_csv(
@@ -67,8 +56,17 @@ def write_schedule_csv(
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            for instructor_id, (slot_index, room_id, course) in sorted(solution.items(), key=lambda kv: get_proper_sort_key(kv, timeslots)):
-                instructor = instructors_by_id[instructor_id]
+            for key, value in sorted(solution.items(), key=lambda kv: get_proper_sort_key(kv, timeslots)):
+                # Handle both old format (3 values) and new format (4 values)
+                if len(value) == 4:
+                    slot_index, room_id, course, instructor_id = value
+                else:
+                    slot_index, room_id, course = value
+                    instructor_id = key
+                    
+                instructor = instructors_by_id.get(instructor_id)
+                if not instructor:
+                    continue
                 ts = timeslots[slot_index]
                 writer.writerow(
                     {
@@ -92,8 +90,17 @@ def write_schedule_csv(
                 with open(new_path, "w", newline="", encoding="utf-8") as f:
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writeheader()
-                    for instructor_id, (slot_index, room_id, course) in sorted(solution.items(), key=lambda kv: get_proper_sort_key(kv, timeslots)):
-                        instructor = instructors_by_id[instructor_id]
+                    for key, value in sorted(solution.items(), key=lambda kv: get_proper_sort_key(kv, timeslots)):
+                        # Handle both old format (3 values) and new format (4 values)
+                        if len(value) == 4:
+                            slot_index, room_id, course, instructor_id = value
+                        else:
+                            slot_index, room_id, course = value
+                            instructor_id = key
+                            
+                        instructor = instructors_by_id.get(instructor_id)
+                        if not instructor:
+                            continue
                         ts = timeslots[slot_index]
                         writer.writerow(
                             {
@@ -120,8 +127,17 @@ def write_schedule_csv(
 def print_schedule(solution: Dict[str, Assignment], instructors_by_id: Dict[str, Instructor], timeslots: List[TimeSlot]):
     """Print schedule to console with proper sorting and debug information."""
     rows: List[Tuple[str, str, str, str, str, str]] = []
-    for instructor_id, (slot_index, room_id, course) in sorted(solution.items(), key=lambda kv: get_proper_sort_key(kv, timeslots)):
-        instructor = instructors_by_id[instructor_id]
+    for key, value in sorted(solution.items(), key=lambda kv: get_proper_sort_key(kv, timeslots)):
+        # Handle both old format (3 values) and new format (4 values)
+        if len(value) == 4:
+            slot_index, room_id, course, instructor_id = value
+        else:
+            slot_index, room_id, course = value
+            instructor_id = key
+            
+        instructor = instructors_by_id.get(instructor_id)
+        if not instructor:
+            continue
         ts = timeslots[slot_index]
         rows.append((instructor.name, instructor.instructor_id, ts.day, f"{ts.start_time}-{ts.end_time}", room_id, course))
 
@@ -145,18 +161,30 @@ def print_schedule(solution: Dict[str, Assignment], instructors_by_id: Dict[str,
     
     # Check for conflicts
     room_time_conflicts = {}
-    for instructor_id, (slot_index, room_id, course) in solution.items():
-        key = (slot_index, room_id)
-        if key in room_time_conflicts:
+    for sol_key, value in solution.items():
+        # Handle both formats
+        if len(value) == 4:
+            slot_index, room_id, course, instructor_id = value
+        else:
+            slot_index, room_id, course = value
+            instructor_id = sol_key
+            
+        conflict_key = (slot_index, room_id)
+        if conflict_key in room_time_conflicts:
             print(f"⚠️  CONFLICT: Room {room_id} at timeslot {slot_index} has multiple assignments!")
             print(f"   - {instructor_id}: {course}")
-            print(f"   - {room_time_conflicts[key][0]}: {room_time_conflicts[key][1]}")
+            print(f"   - {room_time_conflicts[conflict_key][0]}: {room_time_conflicts[conflict_key][1]}")
         else:
-            room_time_conflicts[key] = (instructor_id, course)
+            room_time_conflicts[conflict_key] = (instructor_id, course)
     
     # Check day distribution
     day_distribution = {}
-    for instructor_id, (slot_index, room_id, course) in solution.items():
+    for sol_key, value in solution.items():
+        # Handle both formats
+        if len(value) == 4:
+            slot_index = value[0]
+        else:
+            slot_index = value[0]
         day = timeslots[slot_index].day
         day_distribution[day] = day_distribution.get(day, 0) + 1
     
