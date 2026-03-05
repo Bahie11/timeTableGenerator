@@ -1,0 +1,56 @@
+InstructorID,Name,Day,StartTime,EndTime,RoomID,Course
+PROF01,Dr. Reda Elbasiony,Sunday,9:00 AM,10:30 AM,R101,CSC111
+PROF02,Dr. Ayman Arafa,Monday,9:00 AM,10:30 AM,R101,MTH111
+PROF03,Dr. Adel Fathy,Sunday,9:00 AM,10:30 AM,R102,PHY113
+PROF04,Dr. Sherine Elmotasem,Sunday,9:00 AM,10:30 AM,R103,LRA101
+PROF05,Prof. Ahmed Allam,Sunday,9:00 AM,10:30 AM,R104,ECE111
+PROF06,Dr. Sameh Sherif,Monday,9:00 AM,10:30 AM,R102,ECE111
+PROF07,Dr. Ahmed Arafa,Sunday,9:00 AM,10:30 AM,R105,CSC211
+PROF08,Dr. Ahmed Anter,Sunday,9:00 AM,10:30 AM,R106,AID311
+PROF09,Prof. Mostafa Soliman,Sunday,9:00 AM,10:30 AM,R107,CSE214
+PROF10,Dr. Ahmed Abdel-Malk,Sunday,9:00 AM,10:30 AM,R108,ECE324
+PROF11,Dr. Ahmed Bayumi,Monday,9:00 AM,10:30 AM,R103,AID428
+PROF12,Dr. Hataba,Sunday,9:00 AM,10:30 AM,R109,CNC418
+PROF13,Dr. Reda,Sunday,9:00 AM,10:30 AM,R110,CNC312
+PROF14,Prof. Samir Ahmed,Sunday,9:00 AM,10:30 AM,R111,CNC413
+PROF15,Dr. Mohamed Issa,Sunday,9:00 AM,10:30 AM,R112,BIF425
+PROF16,Dr. Mustafa AlSayed,Monday,9:00 AM,10:30 AM,R104,CSC426
+PROF17,Dr. Mohamed Akhames,Sunday,9:00 AM,10:30 AM,R113,CSC410
+PROF18,Prof. Marghany Hassan,Sunday,9:00 AM,10:30 AM,R114,BIF413
+PROF19,Dr. Nadia Fawzy,Sunday,10:45 AM,12:15 PM,R101,CSC221
+PROF20,Dr. Karim Hamed,Sunday,10:45 AM,12:15 PM,R102,MTH212
+PROF21,Dr. Moustafa Mahmoud,Sunday,10:45 AM,12:15 PM,R103,CSC121
+PROF23,Mohamad Ayad,Sunday,10:45 AM,12:15 PM,R104,CHM113
+PROF24,Prof. gehad G. Mohamed,Sunday,10:45 AM,12:15 PM,R105,CHM113
+PROF25,Dr. Mostafa Mohamed,Sunday,10:45 AM,12:15 PM,R106,AID322
+PROF26,Dr. Yassen,Monday,9:00 AM,10:30 AM,R105,AID324
+PROF27,Prof. Adel Al-senn,Sunday,10:45 AM,12:15 PM,R107,LRA201
+PROF28,Dr. Mohamed El-khateeb,Sunday,10:45 AM,12:15 PM,R108,LRA203
+PROF29,Prof. Said Sadik,Sunday,10:45 AM,12:15 PM,R109,LRA206
+PROF30,Dr. Maali Fouad,Sunday,10:45 AM,12:15 PM,R110,LRA405
+PROF31,Prof. Mohamed Hassan,Monday,9:00 AM,10:30 AM,R106,LRA409
+PROF32,Dr. Amal Gomaa,Sunday,10:45 AM,12:15 PM,R111,LRA410
+PROF33,Dr. Kenji Tanaka,Monday,9:00 AM,10:30 AM,R107,LRA401
+PROF34,Dr. Yumi Yamamoto,Sunday,10:45 AM,12:15 PM,R112,LRA401
+PROF35,Dr. Haruto Ito,Monday,9:00 AM,10:30 AM,R108,LRA401
+AP01,Eng. Fatma Elsayed,Monday,9:00 AM,10:30 AM,R109,AID417
+AP02,Eng. Nada Essam,Sunday,10:45 AM,12:15 PM,R113,AID411
+AP03,Eng. Salma Alashry,Sunday,10:45 AM,12:15 PM,R114,AID321
+AP04,Eng. Mariam Ismael,Sunday,12:30 PM,2:00 PM,R101,CSC111
+AP05,Eng. Nada Hamdy,Sunday,12:30 PM,2:00 PM,R102,CSC111
+AP06,Eng. Salma Waleed,Monday,9:00 AM,10:30 AM,R110,AID312
+AP07,Eng. Menna Hamdi,Sunday,12:30 PM,2:00 PM,R103,CNC312
+AP08,Eng. Omnya Ramadan,Sunday,12:30 PM,2:00 PM,R104,CSE214
+AP09,Eng. Heba Abdelkader,Sunday,12:30 PM,2:00 PM,R105,CSE214
+AP10,Eng. Nourhan Waleed,Sunday,12:30 PM,2:00 PM,R106,AID312
+AP11,Eng. Menna Magdy,Monday,9:00 AM,10:30 AM,R111,CSC211
+AP12,Eng. Nada Ahmed,Sunday,12:30 PM,2:00 PM,R107,CSC211
+AP13,Eng. Laila Ibrahim,Sunday,12:30 PM,2:00 PM,R108,CSC121
+AP14,Eng. Tarek Salah,Sunday,12:30 PM,2:00 PM,R109,CSE214
+AP15,Eng. Rana Mohamed,Sunday,12:30 PM,2:00 PM,R110,CNC223
+AP16,Eng. Saeed Mostafa,Monday,9:00 AM,10:30 AM,R112,CSC221
+AP17,Eng. Maria Mounir,Sunday,12:30 PM,2:00 PM,R111,CSC221
+AP18,Eng. Alaa Essam,Sunday,12:30 PM,2:00 PM,R112,BIF323
+AP19,Eng. Bassant Tolba,Sunday,12:30 PM,2:00 PM,R113,CNC325
+AP20,Eng. Menna Mahmoud,Sunday,12:30 PM,2:00 PM,R114,CNC327
+PROF22,Dr. Ali Kandil,Sunday,2:15 PM,3:45 PM,R101,MTH121

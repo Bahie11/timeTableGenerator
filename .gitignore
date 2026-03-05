@@ -1,0 +1,38 @@
+node_modules/
+dist/
+.env
+*.log
+__pycache__/
+*.pyc
+*.zip
+*.docx
+*.pdf
+
+/-DentalClinic-Website-main
+/.vscode
+/assemblerr
+/Bank System project
+/bank_system
+/Bleaf
+/brokil
+/cpu-scheduling-algorithms-python-master
+/E-CommerceWebsite-master
+/E-CommerceWebsite-master.zip
+/FCFS
+/FCFS.zip
+/fcfs_results.txt
+/financial aid.docx
+/fl.txt
+/hello.cpp
+/Home Decoration
+/HTML and CSS
+/output
+/Simple Triangle code
+/SimpleBackend
+/SimpleBackend.zip
+/timetable.zip
+/web
+/web project
+/web project.zip
+/Shooting_Game-main
+/3D-Tanks-Game-Unity-master (1)
